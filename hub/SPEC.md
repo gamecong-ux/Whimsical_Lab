@@ -142,37 +142,39 @@
 
 HTML / CSS / JavaScriptのみの静的サイト。現状はフレームワーク、パッケージのインストール、ビルド処理、バックエンド、データベースを必要としない。
 
+リポジトリはモノレポで、Hubは `hub/` フォルダに置く。
+
 ```text
-D:\MakeApp\Whimsical Lab\
-├─ SPEC.md                 本仕様書
-├─ README.md               確認・編集・公開の案内
-├─ .gitignore              管理対象外ファイルの指定
-├─ cloudflare-upload.zip   手動アップロード用。Git管理対象外
-├─ drafts\
-│  └─ midnight-ocean.png   旧背景案。未使用・配信対象外・Git管理対象外
-└─ dist\                   公開するファイルだけを置く
-   ├─ index.html           画面の構造
-   ├─ style.css            レイアウトとマットブラック背景
-   ├─ apps.js              アプリの一覧データと表示処理
-   └─ favicon.svg          ブラウザタブ用アイコン（✳）
+D:\MakeApp\Whimsical Lab\     リポジトリのルート
+├─ README.md                  モノレポ全体の案内
+├─ .gitignore
+├─ docs\                      複数フォルダにまたがる作業指示
+└─ hub\                       Hub（本仕様書の対象）
+   ├─ SPEC.md                 本仕様書
+   ├─ README.md               確認・編集・公開の案内
+   ├─ drafts\
+   │  └─ midnight-ocean.png   旧背景案。未使用・配信対象外・Git管理対象外
+   └─ dist\                   公開するファイルだけを置く
+      ├─ index.html           画面の構造
+      ├─ style.css            レイアウトとマットブラック背景
+      ├─ apps.js              アプリの一覧データと表示処理
+      └─ favicon.svg          ブラウザタブ用アイコン（✳）
 ```
 
-- 比較機能の `themes.js` は最新のローカル実装では削除済み。
+- 比較機能の `themes.js` は削除済み。
 - 過去にブラウザへ保存した背景設定が残っていても、現行コードは読み込まないため画面には影響しない。
-- `cloudflare-upload.zip` には `dist` の4ファイル（HTML・CSS・JavaScript・favicon）を格納している。未使用の海面画像は `drafts` に移し、`dist` からもZIPからも外している。
-- サイト専用フォルダだけを編集対象とし、`D:\MakeApp` 内の別アプリを変更しない。
+- 手動アップロード用の `cloudflare-upload.zip` は、GitHub連携での公開に移ったため廃止した。
+- Hubの作業では `hub/` だけを編集対象とし、ほかのアプリのフォルダを変更しない。
 
 ## 7. 管理・公開方針
 
-- 作業場所：`D:\MakeApp\Whimsical Lab`
-- このチャットの作業ルート：`D:\MakeApp`
-- GitHub：<https://github.com/gamecong-ux/Whimsical_Lab>
+- 作業場所：`D:\MakeApp\Whimsical Lab\hub`
+- GitHub：<https://github.com/gamecong-ux/Whimsical_Lab>（モノレポ。Hubと各アプリを同じリポジトリに置く）
 - ブランチ：`main`
-- 公開サービスの希望：Cloudflare、無料枠内で運用する。
-- Cloudflareへのデプロイはまだ実施していない。
-- 公開URL、独自ドメインは未確定。
-- READMEでは手動アップロード方式を案内しているが、GitHub連携での自動公開はまだ設定していない。実際の公開方式は今後決める。
-- 各アプリ本体のホスティングや利用料はHubとは別に扱う。
+- 公開：Cloudflare Pages の無料枠で、GitHub連携による自動公開。設定は `hub/README.md` を参照（ルートディレクトリ `hub`、ビルド出力 `dist`）。
+- 公開URL：`https://whimsical-lab-8oa.pages.dev`
+- 独自ドメイン＋サブドメイン構成にする方針。ドメイン名は未確定（`docs/CONNECT-IMAGE-APP.md` を参照）。
+- 各アプリは同じリポジトリの別フォルダに置き、別の Pages プロジェクトとして公開する。
 
 ### GitHubとローカルの同期状況
 
