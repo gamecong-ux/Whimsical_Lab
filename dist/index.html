@@ -7,12 +7,19 @@
   <meta name="description" content="Whimsical LabのWebアプリを集めたホーム画面。">
   <title>Whimsical Lab</title>
   <link rel="stylesheet" href="style.css">
+  <script src="themes.js"></script>
   <script src="apps.js" defer></script>
 </head>
 <body>
   <main class="home">
     <header><a class="brand" href="./" aria-label="Whimsical Lab ホーム"><span class="brand-mark" aria-hidden="true">✳</span> Whimsical Lab</a><span class="edition">APP COLLECTION</span></header>
     <section class="launcher" aria-label="アプリ一覧"><div id="apps" class="app-grid"></div></section>
+    <div class="theme-picker" role="group" aria-label="背景を選ぶ">
+      <button type="button" data-theme="obsidian" aria-pressed="true"><span class="swatch swatch-obsidian" aria-hidden="true"></span>黒曜石</button>
+      <button type="button" data-theme="silk" aria-pressed="false"><span class="swatch swatch-silk" aria-hidden="true"></span>ブラックシルク</button>
+      <button type="button" data-theme="glass" aria-pressed="false"><span class="swatch swatch-glass" aria-hidden="true"></span>スモークガラス</button>
+      <button type="button" data-theme="matte" aria-pressed="false"><span class="swatch swatch-matte" aria-hidden="true"></span>マットブラック</button>
+    </div>
     <footer><span>Whimsical Lab</span><span>MADE WITH CURIOSITY.</span></footer>
   </main>
   <dialog id="notice" aria-labelledby="notice-title"><form method="dialog"><span class="dialog-icon" aria-hidden="true">✳</span><h2 id="notice-title">ただいま準備中</h2><p>こちらは配置確認用のサンプルです。<br>公開するアプリを、順次追加していきます。</p><button class="close">ホームに戻る</button></form></dialog>

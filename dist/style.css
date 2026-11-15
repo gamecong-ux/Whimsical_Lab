@@ -1,7 +1,7 @@
 @charset "UTF-8";
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;color:#ececf0;background:#0c0d10;font-synthesis:none;color-scheme:dark}
 *{box-sizing:border-box}
-body{margin:0;min-height:100svh;background-color:#070809;background-image:radial-gradient(ellipse 105% 32% at 12% 10%,#ffffff07 0%,#ffffff02 43%,transparent 69%),radial-gradient(ellipse 115% 42% at 92% 47%,#191c20 0%,#101215 36%,transparent 70%),radial-gradient(ellipse 105% 36% at 4% 83%,#181b1e 0%,#0e1012 38%,transparent 72%),linear-gradient(158deg,#0d0f11 0%,#050607 36%,#0b0d0f 66%,#040506 100%);background-attachment:fixed}
+body{margin:0;min-height:100svh;background:#070809;isolation:isolate}body::before,body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1}body::before{background:var(--wallpaper);background-size:cover}body::after{background:radial-gradient(ellipse at 50% 40%,transparent 20%,#0005 100%)}
 button,a{-webkit-tap-highlight-color:transparent}button{font:inherit}a{color:inherit}
 .home{max-width:1040px;min-height:100svh;margin:auto;padding:36px 64px 24px;display:flex;flex-direction:column}
 header{display:flex;align-items:center;justify-content:space-between;gap:16px}
@@ -20,3 +20,30 @@ dialog::backdrop{background:#0008;backdrop-filter:blur(6px)}.dialog-icon{font-si
 @media(min-width:900px){.app-grid{grid-template-columns:repeat(6,minmax(0,1fr))}.icon{width:82px;height:82px}}
 @media(max-width:600px){.home{padding:24px 22px}.edition{font-size:8px;letter-spacing:.08em}.brand{font-size:13px}.launcher{padding:64px 0}.app-grid{gap:28px 8px}.icon{width:58px;height:58px;font-size:28px}.app-label{font-size:10px}.app-status{font-size:8px}footer{letter-spacing:.06em;font-size:8px}}
 @media(prefers-reduced-motion:reduce){.icon{transition:none}}
+
+/* Four restrained, abstract material studies. */
+:root,[data-theme="obsidian"]{
+  --wallpaper:radial-gradient(ellipse 76% 115% at 108% 115%,#08090b 55%,#121519 57%,#40454b 57.25%,#20242a 57.6%,#090b0e 60%,transparent 67%),radial-gradient(ellipse 90% 120% at -28% -40%,#040506 60%,#292c30 60.4%,#111316 61%,#050607 69%);
+}
+[data-theme="silk"]{
+  --wallpaper:linear-gradient(116deg,transparent 20%,#0008 45%,transparent 64%),repeating-linear-gradient(156deg,#060709 0%,#0b0d10 10%,#22252a 15%,#32353a 16%,#141619 19%,#060709 24%,#0b0c0e 33%,#25282c 40%,#111315 44%,#050607 50%);
+}
+[data-theme="glass"]{
+  --wallpaper:linear-gradient(112deg,transparent 34%,#b4c4d50a 34.1%,#ffffff02 50%,#0003 50.1%,transparent 68%),radial-gradient(ellipse 34% 63% at 78% 65%,#303b48 0%,#1a232d 28%,#0a101899 65%,transparent 100%),radial-gradient(ellipse 30% 48% at 20% 20%,#282b33 0%,#13151b 45%,transparent 100%),linear-gradient(125deg,#07090c,#0b0e13 60%,#050608);
+}
+[data-theme="matte"]{
+  --wallpaper:radial-gradient(ellipse 75% 80% at 50% 35%,#191919 0%,#101010 48%,#080808 100%);
+}
+[data-theme="matte"] body::after{
+  opacity:.16;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23fff' filter='url(%23n)' opacity='.28' d='M0 0h180v180H0z'/%3E%3C/svg%3E");
+}
+.theme-picker{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;align-self:center;margin:0 0 32px;padding:6px;border:1px solid #ffffff14;border-radius:18px;background:#090a0cc7;box-shadow:0 8px 32px #0003}
+.theme-picker button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:9px 14px;border:1px solid transparent;border-radius:12px;background:transparent;color:#a6a7ae;font-size:11px;cursor:pointer;transition:background .15s,color .15s}
+.theme-picker button:hover{background:#ffffff09;color:#fff}.theme-picker button[aria-pressed="true"]{background:#ffffff0e;border-color:#ffffff30;color:#f3f3f5}
+.swatch{width:18px;height:18px;flex:none;border:1px solid #ffffff29;border-radius:50%}
+.swatch-obsidian{background:linear-gradient(135deg,#07090b 40%,#737980 44%,#14171b 52%,#07090b 80%)}
+.swatch-silk{background:repeating-linear-gradient(145deg,#0a0b0e 0%,#55585e 30%,#0a0b0e 48%)}
+.swatch-glass{background:radial-gradient(at 65% 40%,#697c92,#0a0e15 80%)}
+.swatch-matte{background:#222}
+@media(max-width:600px){.theme-picker{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:min(100%,340px);gap:4px;margin-bottom:24px}.theme-picker button{justify-content:flex-start;padding:9px 10px;font-size:10px}.launcher{min-height:280px}}
+@media(prefers-reduced-motion:reduce){.theme-picker button{transition:none}}
