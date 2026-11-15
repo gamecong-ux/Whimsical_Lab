@@ -53,19 +53,21 @@ python -m http.server 8080 --bind 127.0.0.1 --directory public
 
 ## 設置先
 
-Cloudflare **Workers**（静的アセット）に GitHub 連携で公開する。`main` に送ると自動で再公開される。
-公開範囲は `wrangler.jsonc` の `assets.directory`（`./public`）で決まる。
+Cloudflare Pages に GitHub 連携で公開している。`main` に送ると自動で再公開される。
+
+公開 URL：<https://i-like-it-dul.pages.dev>
 
 | 設定 | 値 |
 |---|---|
 | リポジトリ | `gamecong-ux/Whimsical_Lab`（Hub と同じ） |
-| プロジェクト名 | `i-like-it`（`wrangler.jsonc` の `name` と一致させる） |
+| プロジェクト名 | `i-like-it` |
+| フレームワークプリセット | なし |
 | ビルドコマンド | 空欄 |
-| デプロイコマンド | `npx wrangler deploy` |
-| ルートディレクトリ | `/apps/i-like-it` |
+| ルートディレクトリ | `apps/i-like-it` |
+| ビルド出力ディレクトリ | `public` |
 | ビルド監視パス（含める） | `apps/i-like-it/*` |
 
-公開 URL のオリジン（例 `https://i-like-it.<アカウント名>.workers.dev`）を、手順 4 の「承認済みの JavaScript 生成元」に追加すること。
+公開 URL のオリジン `https://i-like-it-dul.pages.dev` を、手順 4 の「承認済みの JavaScript 生成元」に追加すること。
 `file://` で直接開くと Google ログインが動かないため、必ず HTTP(S) で配信する。
 
 ## 企画書 13 章の仮決定事項

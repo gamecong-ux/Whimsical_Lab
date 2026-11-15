@@ -1,6 +1,7 @@
 // name: アプリ名 / url: 公開URL / symbol: アイコン（文字・絵文字）
 // url が空の項目は、サンプルとして「準備中」を表示します。
 const apps = [
+  { name: '画像評価帳', url: 'https://i-like-it-dul.pages.dev/', symbol: '♡', colors: ['#e5a1b0', '#b5677c'] },
   { name: 'アプリ 01', url: '', symbol: '✳', colors: ['#91b7d2', '#537f9e'] },
   { name: 'アプリ 02', url: '', symbol: '◈', colors: ['#edb88d', '#ce8664'] },
   { name: 'アプリ 03', url: '', symbol: '♫', colors: ['#b7add7', '#867aa9'] },

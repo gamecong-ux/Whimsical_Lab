@@ -1,8 +1,0 @@
-// Cloudflare Workers の設定。public/ の中身だけを静的ファイルとして公開する。
-{
-  "name": "i-like-it",
-  "compatibility_date": "2026-11-01",
-  "assets": {
-    "directory": "./public"
-  }
-}
