@@ -1,8 +1,8 @@
 # Local deployment archives
 cloudflare-upload.zip
 
-# Unused background draft
-dist/midnight-ocean.png
+# Unused design drafts (not deployed)
+drafts/
 
 # Local tools and secrets
 node_modules/

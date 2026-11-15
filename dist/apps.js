@@ -11,10 +11,14 @@ const apps = [
 
 const grid = document.querySelector('#apps');
 const notice = document.querySelector('#notice');
+const fallbackColors = ['#8a8d96', '#5b5e66'];
 for (const app of apps) {
+  if (!app || typeof app !== 'object') continue;
+  const name = String(app.name ?? '');
+  const colors = Array.isArray(app.colors) && app.colors.length >= 2 ? app.colors : fallbackColors;
   let destination;
   try {
-    const candidate = new URL(app.url);
+    const candidate = new URL(app.url ?? '');
     if (['https:', 'http:'].includes(candidate.protocol)) destination = candidate.href;
   } catch { /* 未設定のURLは準備中として扱う */ }
   const item = document.createElement(destination ? 'a' : 'button');
@@ -29,12 +33,13 @@ for (const app of apps) {
   const icon = document.createElement('span');
   icon.className = 'icon';
   icon.setAttribute('aria-hidden', 'true');
-  icon.style.setProperty('--light', app.colors[0]);
-  icon.style.setProperty('--dark', app.colors[1]);
-  icon.textContent = app.symbol;
+  icon.style.setProperty('--light', String(colors[0]));
+  icon.style.setProperty('--dark', String(colors[1]));
+  icon.textContent = String(app.symbol ?? '');
   const label = document.createElement('span');
   label.className = 'app-label';
-  label.textContent = app.name;
+  label.textContent = name;
+  label.title = name; // 2行で省略された場合もホバーで全体を確認できる
   item.append(icon, label);
   if (!destination) {
     const status = document.createElement('span');
