@@ -5,7 +5,7 @@
 
 ## ファイル構成
 
-Whimsical Lab モノレポの `apps/image-rating/` に置いている。公開するのは `public/` の中身だけ。
+Whimsical Lab モノレポの `apps/i-like-it/` に置いている。公開するのは `public/` の中身だけ。
 
 | ファイル | 内容 |
 |---|---|
@@ -58,14 +58,14 @@ Cloudflare Pages に GitHub 連携で公開する。`main` に送ると自動で
 | 設定 | 値 |
 |---|---|
 | リポジトリ | `gamecong-ux/Whimsical_Lab`（Hub と同じ） |
-| プロジェクト名 | `image-rating`（使用済みなら末尾に文字が付く） |
+| プロジェクト名 | `i-like-it`（使用済みなら末尾に文字が付く） |
 | フレームワークプリセット | なし |
 | ビルドコマンド | 空欄 |
-| ルートディレクトリ | `apps/image-rating` |
+| ルートディレクトリ | `apps/i-like-it` |
 | ビルド出力ディレクトリ | `public` |
-| ビルド監視パス（含める） | `apps/image-rating/*` |
+| ビルド監視パス（含める） | `apps/i-like-it/*` |
 
-公開 URL のオリジン（例 `https://image-rating.pages.dev`）を、手順 4 の「承認済みの JavaScript 生成元」に追加すること。
+公開 URL のオリジン（例 `https://i-like-it.pages.dev`）を、手順 4 の「承認済みの JavaScript 生成元」に追加すること。
 `file://` で直接開くと Google ログインが動かないため、必ず HTTP(S) で配信する。
 
 ## 企画書 13 章の仮決定事項

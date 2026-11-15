@@ -31,7 +31,7 @@
 | --- | --- | --- | --- |
 | Hub | `https://<DOMAIN>` | `hub/`（既存） | Pages `whimsical-lab`（ルート `hub`、出力 `dist`） |
 | 共通ログイン | `https://auth.<DOMAIN>` | `auth/`（新規） | Workers |
-| 画像評価帳 | `https://image.<DOMAIN>` | `apps/image-rating/`（新規） | Pages（新規、ルート `apps/image-rating`） |
+| 画像評価帳 | `https://image.<DOMAIN>` | `apps/i-like-it/`（新規） | Pages（新規、ルート `apps/i-like-it`） |
 
 ローカルの作業場所はすべて `D:\MakeApp\Whimsical Lab\` 配下になる。
 
@@ -160,7 +160,7 @@
 
 ## 5. 画像評価帳の変更と公開（Claude＋ユーザー）
 
-**作業場所**：`D:\MakeApp\Whimsical Lab\apps\image-rating\`（現在の `D:\MakeApp\画像評価帳\` から移す）
+**作業場所**：`D:\MakeApp\Whimsical Lab\apps\i-like-it\`（現在の `D:\MakeApp\画像評価帳\` から移す）
 
 依頼文の例：
 
@@ -168,10 +168,10 @@
 
 ### 5.1 モノレポへの取り込み（Claude、GitHubへの送信はユーザーの承認後）
 
-- `D:\MakeApp\画像評価帳\` を `apps/image-rating/` にコピーする。
+- `D:\MakeApp\画像評価帳\` を `apps/i-like-it/` にコピーする。
   - 元フォルダは、ユーザーが動作を確認するまで残す。
   - 元フォルダは現在Git管理されていないため、履歴の引き継ぎはない。
-- 配信するファイル（`index.html`、`app.js`、`store.js`、`config.js`、`styles.css`）は `apps/image-rating/public/` に置く。`README.md` は `apps/image-rating/` 直下に置き、配信対象から外す。
+- 配信するファイル（`index.html`、`app.js`、`store.js`、`config.js`、`styles.css`）は `apps/i-like-it/public/` に置く。`README.md` は `apps/i-like-it/` 直下に置き、配信対象から外す。
 - `画像評価帳を開く.vbs` はローカル専用。モノレポに含めるかユーザーに確認する。含める場合は `public/` の外に置き、新しいパスで動くように直す。
 - `config.js` のGoogleクライアントIDは公開情報なので含めてよい。シークレットは存在しない。
 
@@ -191,11 +191,11 @@
 ### 5.3 公開（ユーザー）
 
 1. Cloudflare → Workers & Pages → Pagesで **新しいプロジェクト** を作り、同じリポジトリ `Whimsical_Lab` を接続する。
-   - プロジェクト名：例 `image-rating`
+   - プロジェクト名：例 `i-like-it`
    - ビルドコマンド：空欄
-   - ルートディレクトリ：`apps/image-rating`
+   - ルートディレクトリ：`apps/i-like-it`
    - ビルド出力ディレクトリ：`public`
-   - ビルド監視パス（含める）：`apps/image-rating/*`
+   - ビルド監視パス（含める）：`apps/i-like-it/*`
 2. カスタムドメインに `image.<DOMAIN>` を追加する。
 3. 2章3-3の「承認済みのJavaScript生成元」に `https://image.<DOMAIN>` が入っていることを確認する。
 
