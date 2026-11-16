@@ -95,6 +95,12 @@ let glide = null;
 // 正弦波のカーブで加速・減速する。三次曲線より減速がゆるやかで、止まる直前に急に遅くならない
 const easeInOut = t => (1 - Math.cos(Math.PI * t)) / 2;
 
+// 回転中（アニメーション中・ドラッグ中・ホイールで傾けている間）は、光線・分光・アイコンの光を消す
+function refreshLight() {
+  const rotating = !!frame || !!drag?.moved || wheelBase !== null;
+  stage.classList.toggle('is-rotating', rotating);
+}
+
 function tick(time) {
   if (glide) {
     if (!glide.start) glide.start = time;
@@ -105,6 +111,7 @@ function tick(time) {
     current = target = glide.to;
     glide = null;
     frame = 0; lastTime = 0;
+    refreshLight();
     return;
   }
   const dt = Math.min(0.05, (time - (lastTime || time)) / 1000) || 1 / 60;
@@ -113,7 +120,7 @@ function tick(time) {
   if (Math.abs(target - current) < 0.02) current = target;
   applyRotation(current);
   if (current !== target) frame = requestAnimationFrame(tick);
-  else { frame = 0; lastTime = 0; }
+  else { frame = 0; lastTime = 0; refreshLight(); }
 }
 
 // 入力に追従する動き（ホイール・ドラッグ中）。進行中のスナップは打ち切る
@@ -122,6 +129,7 @@ function moveTo(value, speed) {
   target = value;
   follow = speed;
   if (!frame) frame = requestAnimationFrame(tick);
+  refreshLight();
 }
 
 // スナップ：距離に応じた時間（SNAP_MIN〜SNAP_MAX ミリ秒）でなめらかに動く
@@ -137,6 +145,7 @@ function glideTo(value) {
     duration: Math.min(SNAP_MAX, SNAP_MIN + 600 * distance),
   };
   if (!frame) frame = requestAnimationFrame(tick);
+  refreshLight();
 }
 
 const nearest = value => Math.round(value / step) * step;
@@ -240,6 +249,7 @@ dial.addEventListener('pointermove', event => {
     drag.moved = true;
     drag.angle = pointerAngle(event); // ここから回し始める（それまでのぶれは反映しない）
     dial.classList.add('is-dragging');
+    refreshLight();
     return;
   }
   const angle = pointerAngle(event);
@@ -260,6 +270,7 @@ function endDrag(event) {
   if (moved) snap();
   else if (index >= 0 && event.type === 'pointerup') select(index);
   else snap();
+  refreshLight();
 }
 dial.addEventListener('pointerup', endDrag);
 dial.addEventListener('pointercancel', endDrag);
