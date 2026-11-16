@@ -111,7 +111,7 @@ const nearest = value => Math.round(value / step) * step;
 
 // 揃えるまでの待ち時間（ミリ秒）と、揃える動きのゆるやかさ（時定数・秒。大きいほどゆっくり）
 const SNAP_DELAY = 700;
-const SNAP_EASE = 0.2;
+const SNAP_EASE = 0.4;
 
 function snap() {
   clearTimeout(snapTimer);
