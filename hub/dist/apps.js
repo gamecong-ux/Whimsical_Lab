@@ -24,7 +24,6 @@ const prism = document.querySelector('.prism');
 const lightSvg = document.querySelector('#light');
 const step = 360 / works.length;
 const DIAL_RADIUS = 0.47; // 円盤の直径に対する記号の配置半径
-const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 let selected = -1;
 
 const buttons = works.map((entry, index) => {
@@ -90,35 +89,66 @@ function applyRotation(value) {
   if (next !== selected) { selected = next; render(); }
 }
 
+// 揃える動き（スナップ）は、止まった位置から目的の作品まで、決まった時間でゆっくり加速・減速して動く。
+// 円盤の動きは操作への反応なので、OS の「アニメーションを減らす」設定でも省かない。
+let glide = null;
+const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
 function tick(time) {
+  if (glide) {
+    if (!glide.start) glide.start = time;
+    const t = Math.min(1, (time - glide.start) / glide.duration);
+    current = glide.from + (glide.to - glide.from) * easeInOut(t);
+    applyRotation(current);
+    if (t < 1) { frame = requestAnimationFrame(tick); return; }
+    current = target = glide.to;
+    glide = null;
+    frame = 0; lastTime = 0;
+    return;
+  }
   const dt = Math.min(0.05, (time - (lastTime || time)) / 1000) || 1 / 60;
   lastTime = time;
-  const k = reducedMotion.matches ? 1 : 1 - Math.exp(-dt / follow);
-  current += (target - current) * k;
+  current += (target - current) * (1 - Math.exp(-dt / follow));
   if (Math.abs(target - current) < 0.02) current = target;
   applyRotation(current);
   if (current !== target) frame = requestAnimationFrame(tick);
   else { frame = 0; lastTime = 0; }
 }
 
+// 入力に追従する動き（ホイール・ドラッグ中）。進行中のスナップは打ち切る
 function moveTo(value, speed) {
+  glide = null;
   target = value;
   follow = speed;
   if (!frame) frame = requestAnimationFrame(tick);
 }
 
+// スナップ：距離に応じた時間（SNAP_MIN〜SNAP_MAX ミリ秒）でなめらかに動く
+const SNAP_MIN = 700;
+const SNAP_MAX = 1600;
+function glideTo(value) {
+  const distance = Math.abs(value - current) / step; // 作品何個分か
+  target = value;
+  glide = {
+    from: current,
+    to: value,
+    start: 0,
+    duration: Math.min(SNAP_MAX, SNAP_MIN + 600 * distance),
+  };
+  if (!frame) frame = requestAnimationFrame(tick);
+}
+
 const nearest = value => Math.round(value / step) * step;
 
-// 揃えるまでの待ち時間（ミリ秒）と、揃える動きのゆるやかさ（時定数・秒。大きいほどゆっくり）
+// ホイールを止めてから揃え始めるまでの待ち時間（ミリ秒）
 const SNAP_DELAY = 700;
-const SNAP_EASE = 0.4;
 
 function snap() {
   clearTimeout(snapTimer);
   // ホイール操作中なら確定済みの作品へ戻す（貯めた途中の量では進めない）
   const goal = wheelBase ?? nearest(target);
   wheelBase = null;
-  moveTo(goal, SNAP_EASE);
+  glideTo(goal);
 }
 
 function select(index) {
@@ -128,7 +158,7 @@ function select(index) {
   // 現在の向きから最短の回り方で目的の作品へ
   let goal = -normalized * step;
   goal += Math.round((target - goal) / 360) * 360;
-  moveTo(goal, 0.09);
+  glideTo(goal);
 }
 
 document.addEventListener('keydown', event => {
@@ -163,7 +193,7 @@ document.addEventListener('wheel', event => {
   if (Math.abs(wheelAccum) >= ADVANCE_PIXELS) {
     wheelBase -= Math.sign(wheelAccum) * step;
     wheelAccum = 0;
-    moveTo(wheelBase, 0.1);
+    glideTo(wheelBase);
   } else {
     moveTo(wheelBase - wheelAccum / ADVANCE_PIXELS * LEAN * step, 0.08);
   }
