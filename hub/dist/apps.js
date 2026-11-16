@@ -371,10 +371,10 @@ function layoutLight() {
   // スクリーンは右へ向かって手前に回した台形なので、左端の高さは回転前の高さ（offsetHeight）のまま
   const pvLocal = { left: pv.left - box.left, right: pv.right - box.left, top: pv.top - box.top, bottom: pv.bottom - box.top };
   const towardPreview = pvLocal.left > start.x + 120;
-  const edgeHalf = preview.offsetHeight * 0.44; // スクリーンの光が見えている上下の範囲（CSS のマスクと合わせる）
+  const edgeHalf = preview.offsetHeight * 0.42;
   const centerY = (pvLocal.top + pvLocal.bottom) / 2;
   const far = towardPreview
-    ? { left: pvLocal.left + pv.width * 0.02, right: Math.min(pvLocal.left + pv.width * 0.3, box.width), top: centerY - edgeHalf, bottom: centerY + edgeHalf }
+    ? { left: pvLocal.left, right: Math.min(pvLocal.left + pv.width * 0.35, box.width), top: centerY - edgeHalf, bottom: centerY + edgeHalf }
     : { left: box.width * 0.85, right: box.width, top: start.y - 140, bottom: start.y + 140 };
 
   // プリズム：左面の中点が光線の高さに来るように置く
@@ -405,19 +405,18 @@ function layoutLight() {
     const y1 = y0 + origin;
     const ty0 = far.top + span * i / n;
     const ty1 = far.top + span * (i + 1) / n;
-    // プリズムの内側から始め、スクリーンの左端でちょうど左端の高さいっぱいに広がり、
-    // そこから先はスクリーンの中へまっすぐ入って溶ける（分光とスクリーンの幅を合わせる）
-    const points = `${exit.x - 6},${y0} ${far.left},${ty0} ${far.right},${ty0} ${far.right},${ty1} ${far.left},${ty1} ${exit.x - 6},${y1}`;
+    // プリズムの内側から始めて、出口のつなぎ目を自然に見せる
+    const points = `${exit.x - 6},${y0} ${far.right},${ty0 - 6} ${far.right},${ty1 + 6} ${exit.x - 6},${y1}`;
     beamBands[i].setAttribute('points', points);
-    // ぼかした層は、左端の範囲からはみ出さない程度に少しだけ太くする
-    const pad = span * 0.02;
-    softBands[i].setAttribute('points', `${exit.x - 10},${y0 - 4} ${far.left},${ty0 - pad} ${far.right},${ty0 - pad} ${far.right},${ty1 + pad} ${far.left},${ty1 + pad} ${exit.x - 10},${y1 + 4}`);
+    // ぼかした層は少し太く、上下にも広げる
+    const pad = span * 0.08;
+    softBands[i].setAttribute('points', `${exit.x - 10},${y0 - 6} ${far.right},${ty0 - pad} ${far.right},${ty1 + pad} ${exit.x - 10},${y1 + 6}`);
   });
 
   // スクリーンの左端（s）までは明るく、そこから先はスクリーンの光へ溶け込むように消す
   const s = Math.min(0.95, Math.max(0.3, (far.left - exit.x) / (far.right - exit.x)));
-  setStops(fadeBeam, [['0', 1], [String(s * 0.7), 0.9], [String(s), 0.8], ['1', 0]]);
-  setStops(fadeSoft, [['0', 0.8], [String(s), 0.9], ['1', 0]]);
+  setStops(fadeBeam, [['0', 1], [String(s * 0.7), 0.85], [String(s), 0.55], ['1', 0]]);
+  setStops(fadeSoft, [['0', 0.8], [String(s), 0.95], ['1', 0]]);
   for (const [gradient, rect] of [[fadeBeam, beamMaskRect], [fadeSoft, softMaskRect]]) {
     gradient.setAttribute('x1', exit.x);
     gradient.setAttribute('x2', far.right);
