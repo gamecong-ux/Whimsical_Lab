@@ -173,9 +173,10 @@ document.addEventListener('keydown', event => {
 // - 届くまでは、貯めた量に応じて円盤が少しだけ傾き（最大 LEAN 作品分）、回している手応えを返す
 // - 届かずに止めると、0.7秒後に元の作品へゆっくり戻る
 // マウスの1刻みは環境により1回で100px前後届くことも、細かく分かれて届くこともあるため、機器の種類は判定しない。
-// 1刻み100pxのマウスなら5刻み、133pxなら4刻みで次の作品へ。
+// 1刻み133px（画面拡大率の大きいWindowsで一般的）のマウスなら3刻みで次の作品へ（2刻みでは移らない）。
+// 1刻み100pxのマウスなら4刻み、125pxなら3刻み。
 // 1回の操作（手を止めて揃うまで）で動くのは、操作を始めた作品から前後1作品まで。続けて回しても2個先へは行かない。
-let ADVANCE_PIXELS = 500; // 【一時】調整パネルから変更できるよう let にしている
+const ADVANCE_PIXELS = 333;
 const LEAN = 0.4;
 const LINE_PIXELS = 40; // 行単位（deltaMode 1）で届くときの1行あたりの量
 let wheelBase = null; // ホイール操作中の、確定している作品の角度
@@ -189,7 +190,6 @@ document.addEventListener('wheel', event => {
   const pixels = event.deltaMode === 1 ? delta * LINE_PIXELS
     : event.deltaMode === 2 ? Math.sign(delta) * ADVANCE_PIXELS
       : delta;
-  tuneObserve(pixels); // 【一時】調整パネル用
   if (wheelBase === null) { wheelBase = wheelOrigin = nearest(target); wheelAccum = 0; }
   clearTimeout(snapTimer);
   snapTimer = setTimeout(snap, SNAP_DELAY);
@@ -398,40 +398,3 @@ document.fonts?.ready.then(layoutLight);
 applyRotation(0);
 layoutLight();
 
-// ───────── 【一時】ホイールの刻み数を試す調整パネル（確定したら削除する） ─────────
-// 「3刻み」「4刻み」を押すと、実際に届いたホイール1刻みの量から、次の作品へ移るまでの量を決め直す。
-// 1刻みの量の (刻み数 − 0.5) 倍にするので、指定した刻み数でちょうど移り、1つ少ないと移らない。
-let tuneNotch = 0; // 観測したホイール1刻みの量（px）
-let tuneCount = 0; // 選んだ刻み数（0 は初期設定の 500px）
-const tunePanel = document.createElement('div');
-tunePanel.className = 'tune-panel';
-tunePanel.innerHTML = '<span class="tune-title">ホイール調整（一時）</span><span class="tune-buttons"></span><span class="tune-info"></span>';
-const tuneInfo = tunePanel.querySelector('.tune-info');
-const tuneButtons = [[0, '初期 500px'], [3, '3刻み'], [4, '4刻み']].map(([count, label]) => {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.textContent = label;
-  button.addEventListener('click', () => { tuneCount = count; tuneApply(); });
-  tunePanel.querySelector('.tune-buttons').append(button);
-  return [count, button];
-});
-document.body.append(tunePanel);
-
-function tuneApply() {
-  const notch = tuneNotch || 100;
-  ADVANCE_PIXELS = tuneCount ? Math.round(notch * (tuneCount - 0.5)) : 500;
-  for (const [count, button] of tuneButtons) button.classList.toggle('is-on', count === tuneCount);
-  const notchText = tuneNotch ? `${Math.round(tuneNotch * 100) / 100}px` : '未計測（ホイールを1刻み回すと計測）';
-  const steps = tuneNotch ? `（この量なら ${Math.ceil(ADVANCE_PIXELS / tuneNotch)} 刻みで移動）` : '';
-  tuneInfo.textContent = `1刻み：${notchText} ／ 移動まで：${ADVANCE_PIXELS}px${steps}`;
-}
-
-function tuneObserve(pixels) {
-  // 50px 以上の入力をマウスの1刻みとみなして記録する（細かく分かれて届く環境では記録されない）
-  if (Math.abs(pixels) < 50) return;
-  const value = Math.abs(pixels);
-  if (value === tuneNotch) return;
-  tuneNotch = value;
-  tuneApply();
-}
-tuneApply();
