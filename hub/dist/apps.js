@@ -101,9 +101,9 @@ document.addEventListener('wheel', event => {
   if (event.ctrlKey) return;
   event.preventDefault();
   const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1);
-  updateRotation(rotation - pixels * 0.5, true);
+  updateRotation(rotation - pixels * 0.12, true);
   clearTimeout(settleTimer);
-  settleTimer = setTimeout(settle, 180);
+  settleTimer = setTimeout(settle, 450);
 }, { passive: false });
 
 let drag = null;
