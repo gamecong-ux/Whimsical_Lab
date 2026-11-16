@@ -20,11 +20,17 @@ const counter = document.querySelector('#counter');
 const detailNumber = document.querySelector('#detail-number');
 const stage = document.querySelector('.stage');
 const dial = document.querySelector('.dial-area');
+const step = 360 / works.length;
 let selected = 0;
+let rotation = 0;
+let settleTimer;
 const buttons = works.map((entry, index) => {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = 'dial-item';
+  const angle = index * 2 * Math.PI / works.length;
+  button.style.left = `${50 + 47 * Math.cos(angle)}%`;
+  button.style.top = `${50 + 47 * Math.sin(angle)}%`;
   button.style.setProperty('--item-color', entry.color);
   button.setAttribute('aria-label', `${entry.name}${entry.url ? '' : '、準備中'}を選択`);
   button.title = entry.name;
@@ -59,31 +65,45 @@ function render() {
   else action.removeAttribute('href');
 
   works.forEach((_, index) => {
-    const offset = (index - selected + works.length) % works.length;
-    const angle = offset * 2 * Math.PI / works.length;
     const button = buttons[index];
     button.classList.toggle('is-selected', index === selected);
-    button.style.left = `${50 + 47 * Math.cos(angle)}%`;
-    button.style.top = `${50 + 47 * Math.sin(angle)}%`;
     button.setAttribute('aria-pressed', String(index === selected));
   });
 }
 
-function select(index) { selected = (index + works.length) % works.length; render(); }
+function updateRotation(nextRotation, interacting = false) {
+  rotation = nextRotation;
+  dial.classList.toggle('is-interacting', interacting);
+  dial.style.setProperty('--rotation', `${rotation}deg`);
+  dial.style.setProperty('--counter-rotation', `${-rotation}deg`);
+  const nextSelected = ((Math.round(-rotation / step) % works.length) + works.length) % works.length;
+  if (nextSelected !== selected) { selected = nextSelected; render(); }
+}
+
+function settle() {
+  clearTimeout(settleTimer);
+  const target = Math.round(rotation / step) * step;
+  updateRotation(target);
+}
+
+function select(index) {
+  clearTimeout(settleTimer);
+  const normalized = ((index % works.length) + works.length) % works.length;
+  const target = -normalized * step + Math.round((rotation + normalized * step) / 360) * 360;
+  updateRotation(target);
+}
 document.addEventListener('keydown', event => {
   if (event.altKey || event.ctrlKey || event.metaKey) return;
   if (event.key === 'ArrowLeft') { event.preventDefault(); select(selected - 1); }
   if (event.key === 'ArrowRight') { event.preventDefault(); select(selected + 1); }
 });
-let wheelDelta = 0;
-dial.addEventListener('wheel', event => {
+document.addEventListener('wheel', event => {
+  if (event.ctrlKey) return;
   event.preventDefault();
-  if (Math.sign(wheelDelta) !== Math.sign(event.deltaY)) wheelDelta = 0;
-  wheelDelta += event.deltaY;
-  if (Math.abs(wheelDelta) >= 65) {
-    select(selected + Math.sign(wheelDelta));
-    wheelDelta = 0;
-  }
+  const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1);
+  updateRotation(rotation - pixels * 0.5, true);
+  clearTimeout(settleTimer);
+  settleTimer = setTimeout(settle, 180);
 }, { passive: false });
 
 let drag = null;
@@ -94,9 +114,11 @@ const pointerAngle = event => {
 };
 dial.addEventListener('pointerdown', event => {
   if (event.button !== 0) return;
-  drag = { id: event.pointerId, angle: pointerAngle(event), travel: 0, moved: false };
+  clearTimeout(settleTimer);
+  drag = { id: event.pointerId, angle: pointerAngle(event), moved: false };
   dial.setPointerCapture(event.pointerId);
   dial.classList.add('is-dragging');
+  dial.classList.add('is-interacting');
 });
 dial.addEventListener('pointermove', event => {
   if (!drag || event.pointerId !== drag.id) return;
@@ -105,18 +127,16 @@ dial.addEventListener('pointermove', event => {
   if (change > Math.PI) change -= Math.PI * 2;
   if (change < -Math.PI) change += Math.PI * 2;
   drag.angle = angle;
-  drag.travel += change;
-  if (Math.abs(drag.travel) >= Math.PI / 9) {
-    select(selected + (drag.travel < 0 ? 1 : -1));
-    drag.travel = 0;
-    drag.moved = true;
-  }
+  if (Math.abs(change) < 0.003) return;
+  updateRotation(rotation + change * 180 / Math.PI, true);
+  drag.moved = true;
 });
 function endDrag() {
   if (!drag) return;
   suppressClick = drag.moved;
   drag = null;
   dial.classList.remove('is-dragging');
+  settle();
   setTimeout(() => { suppressClick = false; }, 0);
 }
 dial.addEventListener('pointerup', endDrag);
@@ -125,3 +145,4 @@ dial.addEventListener('click', event => {
   if (suppressClick) { event.preventDefault(); event.stopPropagation(); }
 }, true);
 render();
+updateRotation(0);
