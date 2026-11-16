@@ -92,7 +92,8 @@ function applyRotation(value) {
 // 揃える動き（スナップ）は、止まった位置から目的の作品まで、決まった時間でゆっくり加速・減速して動く。
 // 円盤の動きは操作への反応なので、OS の「アニメーションを減らす」設定でも省かない。
 let glide = null;
-const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+// 正弦波のカーブで加速・減速する。三次曲線より減速がゆるやかで、止まる直前に急に遅くならない
+const easeInOut = t => (1 - Math.cos(Math.PI * t)) / 2;
 
 function tick(time) {
   if (glide) {
