@@ -13,22 +13,21 @@
 <body>
   <main class="home">
     <header class="site-header">
-      <a class="brand" href="./" aria-label="Whimsical Lab ホーム"><span class="brand-mark" aria-hidden="true">✳</span> Whimsical Lab</a>
+      <a class="brand" href="./" aria-label="Whimsical Lab ホーム">Whimsical Lab</a>
+      <span id="counter" class="header-counter" aria-live="polite"></span>
       <span class="edition">A LITTLE LAB, A LOT OF IDEAS.</span>
     </header>
     <section class="stage" aria-label="作品を選ぶ">
-      <div class="stage-heading"><span class="eyebrow">WHIMSICAL LAB / COLLECTION</span></div>
-      <div class="dial-area" aria-label="作品ダイヤル">
+      <div class="dial-area" aria-label="作品ダイヤル。マウスホイールまたはドラッグで回転">
         <div class="dial-glow" aria-hidden="true"></div><div class="dial-ring" aria-hidden="true"></div>
-        <div class="dial-center" aria-hidden="true"><span>EXPLORE<br>THE LAB</span></div>
         <div id="dial-items" class="dial-items"></div>
-        <div class="dial-controls"><button id="prev" type="button" aria-label="前の作品">←</button><span id="counter" aria-live="polite"></span><button id="next" type="button" aria-label="次の作品">→</button></div>
       </div>
-      <div class="light-art" aria-hidden="true"><span class="light-ray"></span><span class="prism"></span><span class="spectrum"></span></div>
+      <div class="light-art" aria-hidden="true"><span class="light-ray"></span><span class="prism"></span><span class="spectrum"></span><span class="spectrum-soft"></span></div>
       <article class="detail" aria-labelledby="work-title">
-        <div class="detail-top"><span class="eyebrow">SELECTED WORK</span><span id="detail-number" class="detail-number"></span></div>
-        <div class="preview" id="preview" role="img" aria-label="仮のプレビュー画像"><span class="preview-grain" aria-hidden="true"></span><span class="preview-orb orb-one" aria-hidden="true"></span><span class="preview-orb orb-two" aria-hidden="true"></span><span class="preview-caption">PREVIEW IMAGE</span></div>
-        <div class="detail-copy"><div><span id="work-kind" class="eyebrow"></span><h1 id="work-title"></h1><p id="work-description"></p></div><a id="open-app" class="open-app" href="#">アプリを開く <span aria-hidden="true">↗</span></a></div>
+        <div class="detail-top"><span id="work-kind" class="eyebrow"></span><span id="detail-number" class="detail-number"></span></div>
+        <h1 id="work-title"></h1>
+        <div class="preview" id="preview" role="img" aria-label="仮のプレビュー画像"><span class="preview-grain" aria-hidden="true"></span><span class="preview-orb orb-one" aria-hidden="true"></span><span class="preview-orb orb-two" aria-hidden="true"></span><span class="preview-orb orb-three" aria-hidden="true"></span><span class="preview-caption">PREVIEW IMAGE</span></div>
+        <div class="detail-copy"><p id="work-description"></p><a id="open-app" class="open-app" href="#">アプリを開く <span aria-hidden="true">→</span></a></div>
       </article>
     </section>
     <footer><span>Whimsical Lab</span><span>MADE WITH CURIOSITY.</span></footer>
