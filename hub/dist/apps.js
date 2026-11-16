@@ -129,30 +129,24 @@ document.addEventListener('keydown', event => {
   if (event.key === 'ArrowRight' || event.key === 'ArrowDown') { event.preventDefault(); select(selected + 1); }
 });
 
-// マウスホイール：7刻みで次の作品。トラックパッド：指の移動量に比例して連続的に回る（約260pxで1作品）。
-// 入力が途切れたら、すぐ（マウス 0.16秒／トラックパッド 0.12秒）最寄りの作品へ素早く揃える。
-const NOTCHES_PER_WORK = 7;
-const PIXELS_PER_WORK = 260;
+// ホイール・トラックパッドとも、スクロール量だけで回す（PIXELS_PER_WORK で1作品）。
+// マウスの1刻みは環境により1回で100px前後届くことも、細かく分かれて届くこともあるため、機器の種類は判定しない。
+// 止めた位置から最寄りの作品へ揃えるので、半作品分（PIXELS_PER_WORK の半分）を超えて回すと次へ進む。
+// 1刻み100pxのマウスなら6刻み、133pxなら4刻みで次の作品へ。それより少なければ元の作品へ戻る。
+// 入力が0.16秒途切れたら、最寄りの作品へ素早く揃える。
+const PIXELS_PER_WORK = 1000;
+const LINE_PIXELS = 40; // 行単位（deltaMode 1）で届くときの1行あたりの量
 document.addEventListener('wheel', event => {
   if (event.ctrlKey) return; // ピンチ操作・ブラウザのズームは妨げない
   event.preventDefault();
   const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
   if (!delta) return;
-  let amount;
-  let isNotch;
-  if (event.deltaMode === 1) { amount = Math.sign(delta) * Math.max(1, Math.round(Math.abs(delta) / 3)) / NOTCHES_PER_WORK; isNotch = true; }
-  else if (event.deltaMode === 2) { amount = Math.sign(delta); isNotch = true; }
-  else {
-    // マウスは1刻みで大きな値（100px前後。画面の拡大率によって 125 や 133.33 など小数にもなる）が届く。
-    // トラックパッドは小さな値が連続で届く。大きな値は、小数でも1刻みとして数える
-    isNotch = Math.abs(delta) >= 50;
-    amount = isNotch
-      ? Math.sign(delta) / NOTCHES_PER_WORK
-      : delta / PIXELS_PER_WORK;
-  }
-  moveTo(target - amount * step, isNotch ? 0.08 : 0.045);
+  const pixels = event.deltaMode === 1 ? delta * LINE_PIXELS
+    : event.deltaMode === 2 ? Math.sign(delta) * PIXELS_PER_WORK
+      : delta;
+  moveTo(target - pixels / PIXELS_PER_WORK * step, 0.07);
   clearTimeout(snapTimer);
-  snapTimer = setTimeout(snap, isNotch ? 160 : 120);
+  snapTimer = setTimeout(snap, 160);
 }, { passive: false });
 
 // ドラッグ：指・マウスに直接追従し、離したら最寄りの作品へ
