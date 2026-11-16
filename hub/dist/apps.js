@@ -208,7 +208,10 @@ document.addEventListener('wheel', event => {
   }
 }, { passive: false });
 
-// ドラッグ：指・マウスに直接追従し、離したら最寄りの作品へ
+// ドラッグ：指・マウスに直接追従し、離したら最寄りの作品へ。
+// 動かさずに離した（タップ・クリックした）ときは、押したアイコンの作品へなめらかに回す。
+// 指のわずかなぶれで回らないよう、DRAG_START_PX 動くまではドラッグとみなさない。
+const DRAG_START_PX = 6;
 let drag = null;
 let suppressClick = false;
 const pointerAngle = event => {
@@ -219,28 +222,44 @@ dial.addEventListener('pointerdown', event => {
   if (event.button !== 0) return;
   clearTimeout(snapTimer);
   wheelBase = null;
-  drag = { id: event.pointerId, angle: pointerAngle(event), moved: false };
+  const item = event.target.closest('.dial-item');
+  drag = {
+    id: event.pointerId,
+    angle: pointerAngle(event),
+    x: event.clientX,
+    y: event.clientY,
+    moved: false,
+    index: item ? buttons.indexOf(item) : -1,
+  };
   dial.setPointerCapture(event.pointerId);
-  dial.classList.add('is-dragging');
 });
 dial.addEventListener('pointermove', event => {
   if (!drag || event.pointerId !== drag.id) return;
+  if (!drag.moved) {
+    if (Math.hypot(event.clientX - drag.x, event.clientY - drag.y) < DRAG_START_PX) return;
+    drag.moved = true;
+    drag.angle = pointerAngle(event); // ここから回し始める（それまでのぶれは反映しない）
+    dial.classList.add('is-dragging');
+    return;
+  }
   const angle = pointerAngle(event);
   let change = angle - drag.angle;
   if (change > Math.PI) change -= Math.PI * 2;
   if (change < -Math.PI) change += Math.PI * 2;
   drag.angle = angle;
-  if (Math.abs(change) < 0.003) return;
   moveTo(target + change * 180 / Math.PI, 0.02);
-  drag.moved = true;
 });
-function endDrag() {
+function endDrag(event) {
   if (!drag) return;
-  suppressClick = drag.moved;
+  const { moved, index } = drag;
   drag = null;
   dial.classList.remove('is-dragging');
-  snap();
+  // 円盤でつかんだ操作のあとに届くクリックは、ここで処理済みなので無視する
+  suppressClick = true;
   setTimeout(() => { suppressClick = false; }, 0);
+  if (moved) snap();
+  else if (index >= 0 && event.type === 'pointerup') select(index);
+  else snap();
 }
 dial.addEventListener('pointerup', endDrag);
 dial.addEventListener('pointercancel', endDrag);
