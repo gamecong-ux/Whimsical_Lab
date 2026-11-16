@@ -143,10 +143,11 @@ document.addEventListener('wheel', event => {
   if (event.deltaMode === 1) { amount = Math.sign(delta) * Math.max(1, Math.round(Math.abs(delta) / 3)) / NOTCHES_PER_WORK; isNotch = true; }
   else if (event.deltaMode === 2) { amount = Math.sign(delta); isNotch = true; }
   else {
-    // 一般的なマウスは1刻み=100px前後の整数。トラックパッドは小さな値や小数が連続で届く
-    isNotch = Math.abs(delta) >= 50 && Number.isInteger(delta);
+    // マウスは1刻みで大きな値（100px前後。画面の拡大率によって 125 や 133.33 など小数にもなる）が届く。
+    // トラックパッドは小さな値が連続で届く。大きな値は、小数でも1刻みとして数える
+    isNotch = Math.abs(delta) >= 50;
     amount = isNotch
-      ? Math.sign(delta) * Math.max(1, Math.round(Math.abs(delta) / 100)) / NOTCHES_PER_WORK
+      ? Math.sign(delta) / NOTCHES_PER_WORK
       : delta / PIXELS_PER_WORK;
   }
   moveTo(target - amount * step, isNotch ? 0.08 : 0.045);
