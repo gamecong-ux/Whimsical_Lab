@@ -109,9 +109,13 @@ function moveTo(value, speed) {
 
 const nearest = value => Math.round(value / step) * step;
 
+// 揃えるまでの待ち時間（ミリ秒）と、揃える動きのゆるやかさ（時定数・秒。大きいほどゆっくり）
+const SNAP_DELAY = 700;
+const SNAP_EASE = 0.2;
+
 function snap() {
   clearTimeout(snapTimer);
-  moveTo(nearest(target), 0.09);
+  moveTo(nearest(target), SNAP_EASE);
 }
 
 function select(index) {
@@ -133,7 +137,7 @@ document.addEventListener('keydown', event => {
 // マウスの1刻みは環境により1回で100px前後届くことも、細かく分かれて届くこともあるため、機器の種類は判定しない。
 // 止めた位置から最寄りの作品へ揃えるので、半作品分（PIXELS_PER_WORK の半分）を超えて回すと次へ進む。
 // 1刻み100pxのマウスなら6刻み、133pxなら4刻みで次の作品へ。それより少なければ元の作品へ戻る。
-// 入力が0.16秒途切れたら、最寄りの作品へ素早く揃える。
+// 入力が0.7秒途切れたら、最寄りの作品へゆっくり揃える（途中で止めてもすぐには戻らない）。
 const PIXELS_PER_WORK = 1000;
 const LINE_PIXELS = 40; // 行単位（deltaMode 1）で届くときの1行あたりの量
 document.addEventListener('wheel', event => {
@@ -146,7 +150,7 @@ document.addEventListener('wheel', event => {
       : delta;
   moveTo(target - pixels / PIXELS_PER_WORK * step, 0.07);
   clearTimeout(snapTimer);
-  snapTimer = setTimeout(snap, 160);
+  snapTimer = setTimeout(snap, SNAP_DELAY);
 }, { passive: false });
 
 // ドラッグ：指・マウスに直接追従し、離したら最寄りの作品へ
