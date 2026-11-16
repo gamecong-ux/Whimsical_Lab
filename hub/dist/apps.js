@@ -173,10 +173,12 @@ document.addEventListener('keydown', event => {
 // - 届かずに止めると、0.7秒後に元の作品へゆっくり戻る
 // マウスの1刻みは環境により1回で100px前後届くことも、細かく分かれて届くこともあるため、機器の種類は判定しない。
 // 1刻み100pxのマウスなら5刻み、133pxなら4刻みで次の作品へ。
+// 1回の操作（手を止めて揃うまで）で動くのは、操作を始めた作品から前後1作品まで。続けて回しても2個先へは行かない。
 const ADVANCE_PIXELS = 500;
 const LEAN = 0.4;
 const LINE_PIXELS = 40; // 行単位（deltaMode 1）で届くときの1行あたりの量
 let wheelBase = null; // ホイール操作中の、確定している作品の角度
+let wheelOrigin = 0; // この操作を始めたときの作品の角度
 let wheelAccum = 0;
 document.addEventListener('wheel', event => {
   if (event.ctrlKey) return; // ピンチ操作・ブラウザのズームは妨げない
@@ -186,7 +188,12 @@ document.addEventListener('wheel', event => {
   const pixels = event.deltaMode === 1 ? delta * LINE_PIXELS
     : event.deltaMode === 2 ? Math.sign(delta) * ADVANCE_PIXELS
       : delta;
-  if (wheelBase === null) { wheelBase = nearest(target); wheelAccum = 0; }
+  if (wheelBase === null) { wheelBase = wheelOrigin = nearest(target); wheelAccum = 0; }
+  clearTimeout(snapTimer);
+  snapTimer = setTimeout(snap, SNAP_DELAY);
+  // この向きにすでに1作品進んでいれば、それ以上は進めない（傾きも出さず、送る動きを邪魔しない）
+  const nextBase = wheelBase - Math.sign(pixels) * step;
+  if (Math.abs(nextBase - wheelOrigin) > step + 0.01) { wheelAccum = 0; return; }
   // 逆向きに回し始めたら、それまでの貯めをいったん捨てて素直に反応させる
   if (Math.sign(pixels) !== Math.sign(wheelAccum)) wheelAccum = 0;
   wheelAccum += pixels;
@@ -197,8 +204,6 @@ document.addEventListener('wheel', event => {
   } else {
     moveTo(wheelBase - wheelAccum / ADVANCE_PIXELS * LEAN * step, 0.08);
   }
-  clearTimeout(snapTimer);
-  snapTimer = setTimeout(snap, SNAP_DELAY);
 }, { passive: false });
 
 // ドラッグ：指・マウスに直接追従し、離したら最寄りの作品へ
