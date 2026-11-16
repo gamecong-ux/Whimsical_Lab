@@ -349,6 +349,8 @@ function colorLight(accent) {
     beamBands[i].setAttribute('fill', color);
   });
   exitGlow.setAttribute('fill', mixHex('#ffffff', accent, 0.3));
+  // 光のスクリーンにも同じ色を渡す（CSS の --l1〜--l6）
+  BANDS.forEach((band, i) => preview.style.setProperty(`--l${i + 1}`, mixHex(band, accent, ACCENT_MIX)));
 }
 
 function layoutLight() {
@@ -365,11 +367,14 @@ function layoutLight() {
   const itemSize = buttons[0].offsetWidth || 47;
   const start = local(dialBox.left + dialBox.width * (0.5 + DIAL_RADIUS) + itemSize * 0.55, dialBox.top + dialBox.height / 2);
 
-  // 分光の行き先：プレビュー全体。プレビューが光より左にある狭い画面では、画面右端へ伸ばす
+  // 分光の行き先：光のスクリーンの左端。分光はスクリーンの左端の縦幅いっぱいに広がり、スクリーンの中へ溶け込む。
+  // スクリーンは右へ向かって手前に回した台形なので、左端の高さは回転前の高さ（offsetHeight）のまま
   const pvLocal = { left: pv.left - box.left, right: pv.right - box.left, top: pv.top - box.top, bottom: pv.bottom - box.top };
   const towardPreview = pvLocal.left > start.x + 120;
+  const edgeHalf = preview.offsetHeight * 0.42;
+  const centerY = (pvLocal.top + pvLocal.bottom) / 2;
   const far = towardPreview
-    ? { left: pvLocal.left, right: Math.min(pvLocal.right, box.width), top: pvLocal.top + pv.height * 0.06, bottom: pvLocal.bottom - pv.height * 0.04 }
+    ? { left: pvLocal.left, right: Math.min(pvLocal.left + pv.width * 0.35, box.width), top: centerY - edgeHalf, bottom: centerY + edgeHalf }
     : { left: box.width * 0.85, right: box.width, top: start.y - 140, bottom: start.y + 140 };
 
   // プリズム：左面の中点が光線の高さに来るように置く
@@ -408,6 +413,10 @@ function layoutLight() {
     softBands[i].setAttribute('points', `${exit.x - 10},${y0 - 6} ${far.right},${ty0 - pad} ${far.right},${ty1 + pad} ${exit.x - 10},${y1 + 6}`);
   });
 
+  // スクリーンの左端（s）までは明るく、そこから先はスクリーンの光へ溶け込むように消す
+  const s = Math.min(0.95, Math.max(0.3, (far.left - exit.x) / (far.right - exit.x)));
+  setStops(fadeBeam, [['0', 1], [String(s * 0.7), 0.85], [String(s), 0.55], ['1', 0]]);
+  setStops(fadeSoft, [['0', 0.8], [String(s), 0.95], ['1', 0]]);
   for (const [gradient, rect] of [[fadeBeam, beamMaskRect], [fadeSoft, softMaskRect]]) {
     gradient.setAttribute('x1', exit.x);
     gradient.setAttribute('x2', far.right);
@@ -427,4 +436,5 @@ document.fonts?.ready.then(layoutLight);
 
 applyRotation(0);
 layoutLight();
-
+// 読み込み直後は光が消えた状態（is-rotating）から始め、配置が決まったら光が伸びる演出を見せる
+setTimeout(refreshLight, 250);

@@ -17,7 +17,7 @@
       <span id="counter" class="header-counter" aria-live="polite"></span>
       <span class="edition">A LITTLE LAB, A LOT OF IDEAS.</span>
     </header>
-    <section class="stage" aria-label="作品を選ぶ">
+    <section class="stage is-rotating" aria-label="作品を選ぶ">
       <div class="dial-area" aria-label="作品ダイヤル。画面全体のマウスホイールまたは円盤のドラッグで回転">
         <div class="dial-glow" aria-hidden="true"></div><div class="dial-ring" aria-hidden="true"></div>
         <div id="dial-items" class="dial-items"></div>
@@ -26,8 +26,10 @@
       <article class="detail" aria-labelledby="work-title">
         <div class="detail-top"><span id="work-kind" class="eyebrow"></span><span id="detail-number" class="detail-number"></span></div>
         <h1 id="work-title"></h1>
-        <div class="preview" id="preview" role="img" aria-label="仮のプレビュー画像"><span class="preview-grain" aria-hidden="true"></span><span class="preview-orb orb-one" aria-hidden="true"></span><span class="preview-orb orb-two" aria-hidden="true"></span><span class="preview-orb orb-three" aria-hidden="true"></span><span class="preview-caption">PREVIEW IMAGE</span></div>
-        <div class="detail-copy"><p id="work-description"></p><a id="open-app" class="open-app" href="#">アプリを開く <span aria-hidden="true">→</span></a></div>
+        <div class="screen" id="preview">
+          <div class="screen-light" aria-hidden="true"><span class="preview-grain"></span><span class="preview-orb orb-one"></span><span class="preview-orb orb-two"></span><span class="preview-orb orb-three"></span></div>
+          <div class="screen-content"><p id="work-description"></p><a id="open-app" class="open-app" href="#">アプリを開く <span aria-hidden="true">→</span></a></div>
+        </div>
       </article>
     </section>
     <footer><span>Whimsical Lab</span><span>MADE WITH CURIOSITY.</span></footer>
