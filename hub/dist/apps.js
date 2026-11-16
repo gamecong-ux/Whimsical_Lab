@@ -83,6 +83,9 @@ function updateRotation(nextRotation, interacting = false) {
 function settle() {
   clearTimeout(settleTimer);
   const target = Math.round(rotation / step) * step;
+  dial.classList.remove('is-interacting');
+  // 回転中の「遷移なし」を解除してから位置を変え、戻る動きを確実にアニメーションさせる。
+  items.getBoundingClientRect();
   updateRotation(target);
 }
 
@@ -100,10 +103,17 @@ document.addEventListener('keydown', event => {
 document.addEventListener('wheel', event => {
   if (event.ctrlKey) return;
   event.preventDefault();
-  const pixels = event.deltaY * (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? window.innerHeight : 1);
-  updateRotation(rotation - pixels * 0.12, true);
+  // 標準的なホイールの1刻みを1単位とし、細かなトラックパッド入力は連続量として扱う。
+  const wheelUnits = event.deltaMode === 1
+    ? Math.sign(event.deltaY) * Math.max(1, Math.round(Math.abs(event.deltaY) / 3))
+    : event.deltaMode === 2
+      ? Math.sign(event.deltaY) * 7
+      : Math.abs(event.deltaY) >= 80
+        ? Math.sign(event.deltaY) * Math.max(1, Math.round(Math.abs(event.deltaY) / 120))
+        : event.deltaY / 100;
+  updateRotation(rotation - wheelUnits * step / 13, true);
   clearTimeout(settleTimer);
-  settleTimer = setTimeout(settle, 450);
+  settleTimer = setTimeout(settle, 650);
 }, { passive: false });
 
 let drag = null;
