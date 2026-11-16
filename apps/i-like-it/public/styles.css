@@ -84,14 +84,6 @@ textarea { resize: vertical; line-height: 1.6; }
 .login, .loading {
   min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center;
 }
-.login-card { max-width: 440px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 40px 36px; box-shadow: var(--shadow); }
-.login-card h1 { margin: 0 0 8px; font-size: 26px; letter-spacing: 0.04em; }
-.login-card .lead { margin: 0 0 24px; }
-.login-card .note { font-size: 12px; color: var(--muted); margin: 18px 0 0; text-align: left; }
-.login-card .note.warn { color: var(--warn); }
-.login-error { color: var(--danger); min-height: 1em; margin: 12px 0 0; font-size: 13px; }
-.demo-link { font-size: 12px; color: var(--muted); margin: 20px 0 0; }
-.demo-link a { color: var(--text); }
 .spinner { width: 28px; height: 28px; border: 3px solid var(--line); border-top-color: var(--text); border-radius: 50%; animation: spin 0.8s linear infinite; }
 .spinner.tiny { display: inline-block; width: 12px; height: 12px; border-width: 2px; vertical-align: -1px; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -163,9 +155,8 @@ textarea { resize: vertical; line-height: 1.6; }
 .resultbar .count { color: var(--muted); font-size: 13px; margin-right: 4px; font-variant-numeric: tabular-nums; }
 
 /* 一覧（石積み） */
-.grid-wrap { padding: 12px 20px 200px; } /* 最下段のスライダーが開ける余白 */
+.grid-wrap { padding: 12px 20px 160px; } /* 最下段のスライダーが開ける余白 */
 .grid { display: flex; gap: 14px; align-items: flex-start; }
-.grid.empty { display: block; }
 .col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 .tile {
   display: block; width: 100%; position: relative;
@@ -266,3 +257,62 @@ dialog.confirm h2 { margin: 0 0 10px; font-size: 17px; }
 @media (max-width: 900px) {
   .topbar .sort { max-width: 160px; }
 }
+
+/* プロジェクトのタブ */
+.projectbar {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  padding: 8px 20px 0; border-bottom: 1px solid var(--line);
+}
+.ptab { position: relative; display: flex; align-items: center; margin-bottom: -1px; border-bottom: 2px solid transparent; }
+.ptab.active { border-bottom-color: var(--text); }
+.ptab-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px;
+  background: none; border: 0; cursor: pointer; color: var(--muted); white-space: nowrap; max-width: 220px;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.ptab-btn:hover { color: var(--text); }
+.ptab.active .ptab-btn { color: var(--text); font-weight: 700; }
+.ptab-btn .n { font-size: 11px; font-weight: 400; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pdivider { width: 1px; height: 18px; background: var(--line); margin: 0 6px; }
+.ptab-add {
+  height: 28px; padding: 0 10px; margin-left: 4px; border: 1px dashed var(--line); border-radius: 99px;
+  background: none; color: var(--muted); cursor: pointer; font-size: 12px;
+}
+.ptab-add:hover { color: var(--text); border-color: var(--muted); }
+.project-menu { position: relative; }
+.ptab-more {
+  width: 24px; height: 24px; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; line-height: 1;
+}
+.ptab-more:hover { background: var(--surface-2); color: var(--text); }
+.project-menu-list {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 20; min-width: 170px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 4px; box-shadow: var(--shadow);
+}
+.project-menu.open .project-menu-list { display: flex; flex-direction: column; }
+.project-menu-list button {
+  text-align: left; padding: 8px 10px; border: 0; border-radius: 6px; background: none; cursor: pointer;
+}
+.project-menu-list button:hover { background: var(--surface-2); }
+.project-menu-list .danger-text { color: var(--danger); }
+
+/* 入力ダイアログ */
+dialog.confirm input[type="text"] { margin: 4px 0 0; }
+
+/* 「すべて」：プロジェクトごとの区切り */
+.group { margin-bottom: 36px; }
+.group-head { display: flex; align-items: baseline; gap: 10px; margin: 0 0 12px; font-size: 16px; }
+.group-link { background: none; border: 0; padding: 0; font: inherit; font-weight: 700; color: var(--text); cursor: pointer; }
+.group-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.group-head .n { font-size: 12px; font-weight: 400; color: var(--muted); }
+.group-empty { margin: 0; }
+.start-hint { cursor: default; }
+.start-hint .btn { margin-top: 16px; }
+
+/* 追加先プロジェクトの選択 */
+.choose-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; margin: 4px 0 14px; }
+.choose-item { justify-content: flex-start; height: 40px; }
+.choose-new { display: flex; gap: 8px; }
+.choose-new input { flex: 1; }
+.brand-icon { width: 26px; height: 26px; }
+.app-foot { padding: 0 20px 24px; font-size: 12px; color: var(--muted); }
+.app-foot a { color: inherit; }

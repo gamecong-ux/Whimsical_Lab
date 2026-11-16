@@ -3,9 +3,10 @@ import { GoogleAuth, DriveStore, MemoryStore, AuthError } from './store.js';
 
 // ───────── 定数 ─────────
 const RATINGS = [
-  { key: 'like', name: '好き', desc: '自分の好みとして、どう感じるか' },
-  { key: 'want', name: 'やりたい', desc: '自分の作品で取り入れたい・実現したいか' },
-  { key: 'objective', name: '客観的', desc: '好みや制作意欲から離れて、完成度や表現の巧さをどう評価するか' },
+  // key は保存データの項目名（変更しない）。name が画面の表示名
+  { key: 'like', name: 'like', desc: '自分の好みとして、どう感じるか' },
+  { key: 'want', name: 'use', desc: '自分の作品で取り入れたい・使いたいか' },
+  { key: 'objective', name: 'Objective', desc: '好みや制作意欲から離れて、完成度や表現の巧さをどう評価するか' },
 ];
 const SCORE_LABELS = { 2: 'いい', 1: 'ややいい', 0: '普通', '-1': 'やや悪い', '-2': '悪い' };
 const DEFAULT_SCORE = 0;
@@ -23,8 +24,12 @@ const SORTS = [
 const THUMB_MAX = 800;
 
 // ───────── 状態 ─────────
+const VIEW_ALL = 'all';
 const state = {
   records: [],
+  projects: [], // { id, name, createdAt }
+  view: VIEW_ALL, // VIEW_ALL | プロジェクト ID
+  orphans: [], // どのプロジェクトにも入っていない記録（以前の版のデータ）。表示せず、削除を確認する
   pending: [], // アップロード中/失敗した画像
   sort: 'created-desc',
   filters: { like: { min: null, max: null }, want: { min: null, max: null }, objective: { min: null, max: null } },
@@ -61,77 +66,140 @@ function toast(message, kind = 'info') {
   if (!box) { box = h('div', { class: 'toasts', role: 'status', 'aria-live': 'polite' }); document.body.append(box); }
   const t = h('div', { class: `toast ${kind}` }, message);
   box.append(t);
-  setTimeout(() => t.classList.add('out'), 4200);
-  setTimeout(() => t.remove(), 4600);
+  const ms = kind === 'error' ? 10000 : 4200; // エラーは読めるよう長めに出す
+  if (kind === 'error') console.error('[I like it]', message);
+  setTimeout(() => t.classList.add('out'), ms);
+  setTimeout(() => t.remove(), ms + 400);
+}
+
+// モーダルを開き、finish(結果) で閉じる。結果はボタン操作から直接返す
+// （close イベントは裏のタブで遅れることがあるため、それに頼らない）。Esc はキャンセル扱い。
+function openModal(build, cancelValue) {
+  return new Promise((resolve) => {
+    let done = false;
+    const dlg = h('dialog', { class: 'confirm' });
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      if (dlg.open) dlg.close();
+      dlg.remove();
+      resolve(v);
+    };
+    dlg.addEventListener('cancel', (e) => { e.preventDefault(); finish(cancelValue); });
+    dlg.addEventListener('close', () => finish(cancelValue));
+    const focusEl = build(dlg, finish);
+    document.body.append(dlg);
+    dlg.showModal();
+    focusEl?.focus();
+  });
 }
 
 function confirmDialog({ title, body, ok = 'OK', danger = false }) {
-  return new Promise((resolve) => {
-    const dlg = h('dialog', { class: 'confirm' },
+  return openModal((dlg, finish) => {
+    const cancel = h('button', { type: 'button', class: 'btn', onclick: () => finish(false) }, 'キャンセル');
+    dlg.append(
       h('h2', null, title),
       h('div', { class: 'confirm-body' }, body),
       h('div', { class: 'confirm-actions' },
-        h('button', { class: 'btn', onclick: () => dlg.close('cancel') }, 'キャンセル'),
-        h('button', { class: `btn ${danger ? 'danger' : 'primary'}`, onclick: () => dlg.close('ok') }, ok)));
-    dlg.addEventListener('close', () => { resolve(dlg.returnValue === 'ok'); dlg.remove(); });
-    document.body.append(dlg);
-    dlg.showModal();
-    dlg.querySelector('.btn').focus();
-  });
+        cancel,
+        h('button', { type: 'button', class: `btn ${danger ? 'danger' : 'primary'}`, onclick: () => finish(true) }, ok)));
+    return cancel;
+  }, false);
+}
+
+// 1行の文字を入力してもらう。キャンセル時は null
+function promptDialog({ title, value = '', ok = 'OK', placeholder = '' }) {
+  return openModal((dlg, finish) => {
+    const input = h('input', { type: 'text', value, placeholder, maxlength: 60 });
+    const form = h('form', {
+      onsubmit: (e) => { e.preventDefault(); finish(input.value.trim() || null); },
+    },
+    h('h2', null, title),
+    input,
+    h('div', { class: 'confirm-actions' },
+      h('button', { type: 'button', class: 'btn', onclick: () => finish(null) }, 'キャンセル'),
+      h('button', { type: 'submit', class: 'btn primary' }, ok)));
+    dlg.append(form);
+    setTimeout(() => input.select());
+    return input;
+  }, null);
 }
 
 // ───────── 起動・ログイン ─────────
+// 起動時は必ずデモ（メモリのみ）で始まり、右上の「ログイン」で Google ドライブの記録に切り替える。
+const isDemo = () => store?.kind === 'demo';
+
 function init() {
   document.title = CONFIG.appName;
-  const params = new URLSearchParams(location.search);
-  if (params.has('demo')) return startDemo(params.has('demo-fail'));
-  renderLogin();
+  startDemo();
 }
 
-function renderLogin() {
-  const configured = !!CONFIG.googleClientId;
-  const btn = h('button', { class: 'btn primary big', disabled: !configured }, 'Google でログイン');
-  const err = h('p', { class: 'login-error', role: 'alert' });
-  btn.addEventListener('click', async () => {
-    btn.disabled = true;
-    err.textContent = '';
-    try {
-      auth = new GoogleAuth(CONFIG.googleClientId);
-      await auth.signIn();
-      store = new DriveStore(auth);
-      await startApp();
-    } catch (e) {
-      err.textContent = e.message;
-      btn.disabled = false;
-    }
-  });
-  root.replaceChildren(
-    h('div', { class: 'login' },
-      h('div', { class: 'login-card' },
-        h('h1', null, CONFIG.appName),
-        h('p', { class: 'lead' }, '気になった画像を「好き」「やりたい」「客観的」の三つの観点で評価し、保存します。'),
-        btn,
-        h('p', { class: 'note' }, 'ログイン時に、Google ドライブ内のこのアプリ専用の保存領域へのアクセスを許可してください。ほかのドライブ内ファイルにはアクセスしません。'),
-        !configured && h('p', { class: 'note warn' }, 'Google クライアント ID が未設定です。config.js に設定してください（README.md 参照）。'),
-        err,
-        h('p', { class: 'demo-link' }, h('a', { href: '?demo' }, 'デモモードで試す'), '（データは保存されません）'))));
-}
-
-async function startDemo(fail) {
-  store = new MemoryStore({ failRate: fail ? 0.4 : 0 });
+function startDemo() {
+  const fail = new URLSearchParams(location.search).has('demo-fail'); // 保存失敗の動作確認用
   auth = null;
+  store = new MemoryStore({ failRate: fail ? 0.4 : 0 });
+  return startApp();
+}
+
+// ログインするとデモのデータは捨てる
+async function login() {
+  if (!CONFIG.googleClientId) {
+    toast('Google クライアント ID が未設定です。config.js に設定してください。', 'error');
+    return;
+  }
+  if (state.records.length || state.pending.length || state.projects.length) {
+    const ok = await confirmDialog({
+      title: 'ログインしますか？',
+      body: h('p', null, 'デモで追加した画像・評価・プロジェクトは消え、Google ドライブに保存されている記録に切り替わります。'),
+      ok: 'ログインする',
+    });
+    if (!ok) return;
+  }
+  const a = new GoogleAuth(CONFIG.googleClientId);
+  try {
+    await a.signIn();
+  } catch (e) {
+    toast(e.message, 'error');
+    return;
+  }
+  auth = a;
+  store = new DriveStore(auth);
   await startApp();
 }
 
+function resetState() {
+  clearTimeout(saveTimer);
+  state.records = [];
+  state.orphans = [];
+  state.projects = [];
+  state.pending.forEach((p) => URL.revokeObjectURL(p.localUrl));
+  state.pending = [];
+  state.view = VIEW_ALL;
+  state.save = 'idle';
+  state.saveError = null;
+  state.dirty = false;
+  state.conn = 'connected';
+  tiles.clear();
+  pendingTiles.clear();
+  for (const u of new Set(urlCache.values())) URL.revokeObjectURL(u);
+  urlCache.clear();
+}
+
 async function startApp() {
+  resetState();
   root.replaceChildren(h('div', { class: 'loading' }, h('div', { class: 'spinner' }), '記録を読み込み中…'));
   try {
     const data = await store.loadIndex();
     const oldScale = data && (data.version || 1) < 3; // 1〜5 → -2〜2 に読み替え
-    state.records = (data?.records || []).map((r) => normalize(r, oldScale));
-    if (oldScale && state.records.length) markDirty(0);
-    state.conn = 'connected';
+    state.projects = (data?.projects || []).filter((p) => p?.id && p?.name)
+      .map((p) => ({ id: p.id, name: String(p.name), createdAt: p.createdAt || new Date().toISOString() }));
+    const ids = new Set(state.projects.map((p) => p.id));
+    const all = (data?.records || []).map((r) => normalize(r, oldScale, ids));
+    state.records = all.filter((r) => r.projectId);
+    state.orphans = all.filter((r) => !r.projectId);
+    if (oldScale && all.length) markDirty(0);
     renderMain();
+    if (state.orphans.length) askDeleteOrphans();
   } catch (e) {
     root.replaceChildren(h('div', { class: 'loading' },
       h('p', null, '記録を読み込めませんでした。'),
@@ -144,15 +212,16 @@ async function startApp() {
             startApp();
           },
         }, '再試行'),
-        auth && h('button', { class: 'btn', onclick: logout }, 'ログアウト'))));
+        auth && h('button', { class: 'btn', onclick: logout }, 'ログアウトしてデモに戻る'))));
   }
 }
 
-function normalize(r, oldScale = false) {
+function normalize(r, oldScale = false, projectIds = null) {
   const validScore = (v) => {
     if (oldScale) v = Number.isInteger(v) && v >= 1 && v <= 5 ? v - 3 : null;
     return typeof v === 'number' && Number.isFinite(v) && v >= -2 && v <= 2 ? round2(v) : DEFAULT_SCORE;
   };
+  const pid = r.projectId ?? null;
   return {
     id: r.id,
     imageFileId: r.imageFileId,
@@ -162,6 +231,7 @@ function normalize(r, oldScale = false) {
     width: r.width || 1,
     height: r.height || 1,
     size: r.size || 0,
+    projectId: pid && (!projectIds || projectIds.has(pid)) ? pid : null,
     ratings: {
       like: validScore(r.ratings?.like),
       want: validScore(r.ratings?.want),
@@ -172,12 +242,13 @@ function normalize(r, oldScale = false) {
   };
 }
 
+// ログアウトするとデモ（空）に戻る
 function logout() {
-  if (state.dirty || state.save === 'error') {
+  if (state.dirty || saving || state.save === 'error') {
     if (!window.confirm('保存されていない変更があります。ログアウトすると失われます。続けますか？')) return;
   }
   auth?.signOut();
-  location.href = location.pathname;
+  startDemo();
 }
 
 // ───────── 保存（自動・再試行） ─────────
@@ -197,16 +268,18 @@ function markDirty(delay = 700) {
 async function flush() {
   clearTimeout(saveTimer);
   if (saving || !state.dirty) return;
+  const s = store;
   saving = true;
   state.dirty = false;
   setSaveStatus('saving');
   try {
-    await store.saveIndex({ app: 'image-rating', version: DATA_VERSION, savedAt: new Date().toISOString(), records: state.records });
+    await s.saveIndex({ app: 'image-rating', version: DATA_VERSION, savedAt: new Date().toISOString(), projects: state.projects, records: [...state.records, ...state.orphans] });
     saving = false;
     if (state.dirty) flush();
-    else setSaveStatus('saved');
+    else if (store === s) setSaveStatus('saved');
   } catch (e) {
     saving = false;
+    if (store !== s) { if (state.dirty) flush(); return; } // ログイン／ログアウト前の保存の失敗は無視
     state.dirty = true;
     state.saveError = e;
     if (e instanceof AuthError) setConn('reconnect');
@@ -254,7 +327,8 @@ function setConn(c) {
 function renderSaveStatus(el) {
   el.dataset.status = state.save;
   const s = state.save;
-  if (s === 'idle') el.replaceChildren();
+  // デモは保存しないので、失敗以外は何も出さない
+  if (s === 'idle' || (isDemo() && s !== 'error')) el.replaceChildren();
   else if (s === 'saving') el.replaceChildren(h('span', { class: 'dot' }), '保存中…');
   else if (s === 'saved') el.replaceChildren(h('span', { class: 'dot' }), '保存済み');
   else {
@@ -266,6 +340,7 @@ function renderSaveStatus(el) {
 }
 
 window.addEventListener('beforeunload', (e) => {
+  if (isDemo()) return;
   if (state.dirty || saving || state.pending.some((p) => p.status === 'uploading')) {
     e.preventDefault();
     e.returnValue = '';
@@ -308,7 +383,12 @@ fileInput.addEventListener('change', () => { addFiles([...fileInput.files]); fil
 
 function pickFiles() { fileInput.click(); }
 
-function addFiles(files) {
+async function addFiles(files, projectId = currentProjectId()) {
+  if (!files.length) return;
+  if (!projectId) {
+    projectId = await chooseProjectDialog(files.length);
+    if (!projectId) return;
+  }
   const maxBytes = CONFIG.maxFileSizeMB * 1048576;
   const rejected = [];
   const added = [];
@@ -317,7 +397,7 @@ function addFiles(files) {
     if (file.size > maxBytes) { rejected.push(`${file.name}（${CONFIG.maxFileSizeMB}MB を超えています）`); continue; }
     // 選択順に登録日を1msずつずらし、同時アップロードでも並び順を保つ
     const addedAt = new Date(Date.now() + added.length).toISOString();
-    const p = { tempId: crypto.randomUUID(), file, localUrl: URL.createObjectURL(file), status: 'uploading', width: 1, height: 1, addedAt };
+    const p = { tempId: crypto.randomUUID(), file, localUrl: URL.createObjectURL(file), status: 'uploading', width: 1, height: 1, addedAt, projectId };
     state.pending.unshift(p);
     added.push(p);
   }
@@ -343,12 +423,14 @@ async function makeThumb(file) {
 }
 
 async function processPending(p) {
+  const s = store; // 途中でログイン／ログアウトしたら、この登録は捨てる
   p.status = 'uploading';
   updatePendingTile(p);
   updateUploadStatus();
   try {
     if (!p.meta) {
       const m = await makeThumb(p.file);
+      if (store !== s) return;
       p.meta = m;
       p.width = m.width;
       p.height = m.height;
@@ -356,9 +438,14 @@ async function processPending(p) {
     }
     const id = p.recordId || (p.recordId = crypto.randomUUID());
     const ext = ACCEPT[p.file.type];
-    if (!p.imageFileId) p.imageFileId = await store.uploadFile(`img-${id}.${ext}`, p.file);
-    if (!p.thumbFileId) p.thumbFileId = await store.uploadFile(`thumb-${id}.${p.meta.thumb.type === 'image/webp' ? 'webp' : 'jpg'}`, p.meta.thumb);
+    if (!p.imageFileId) p.imageFileId = await s.uploadFile(`img-${id}.${ext}`, p.file);
+    if (store !== s) return;
+    if (!p.thumbFileId) p.thumbFileId = await s.uploadFile(`thumb-${id}.${p.meta.thumb.type === 'image/webp' ? 'webp' : 'jpg'}`, p.meta.thumb);
+    if (store !== s) return;
+    // 登録中にプロジェクトが削除されていたら、この画像も取り消す
+    if (!projectById(p.projectId)) { cancelPending(p); return; }
     const rec = normalize({
+      projectId: p.projectId,
       id,
       imageFileId: p.imageFileId,
       thumbFileId: p.thumbFileId,
@@ -376,7 +463,9 @@ async function processPending(p) {
     markDirty(200);
     renderGrid();
     renderResultBar();
+    renderProjectBar();
   } catch (e) {
+    if (store !== s) return;
     if (e instanceof AuthError) setConn('reconnect');
     p.status = 'error';
     p.error = e.message;
@@ -417,6 +506,10 @@ let filterBtnEl;
 const tiles = new Map(); // id → { el, update }
 const pendingTiles = new Map();
 
+let accountEl;
+let projectBarEl;
+let docListenerSet = false;
+
 function renderMain() {
   const sort = h('select', {
     class: 'sort', 'aria-label': '並べ替え',
@@ -426,69 +519,247 @@ function renderMain() {
   filterBtnEl = h('button', { class: 'btn', 'aria-expanded': 'false', onclick: toggleFilterPanel }, '絞り込み', h('span', { class: 'badge' }));
   filterPanelEl = h('div', { class: 'filter-panel', hidden: true });
 
-  const isDemo = store.kind === 'demo';
-  const account = h('div', { class: 'account' });
-  const accountBtn = h('button', {
-    class: 'account-btn', 'aria-haspopup': 'true',
-    onclick: (e) => { e.stopPropagation(); account.classList.toggle('open'); },
-  },
-  h('span', { class: 'conn-dot', 'data-conn': state.conn }),
-  isDemo ? 'デモ' : (auth.user?.picture ? h('img', { src: auth.user.picture, alt: '', referrerpolicy: 'no-referrer' }) : (auth.user?.email || 'アカウント')));
-  const menu = h('div', { class: 'account-menu' },
-    isDemo
-      ? [h('p', null, h('strong', null, 'デモモード')), h('p', { class: 'muted' }, 'データはこのページを閉じると消えます。'),
-        h('button', { class: 'btn', onclick: () => { location.href = location.pathname; } }, 'デモを終了')]
-      : [
-        h('p', { class: 'muted small' }, 'ログイン中のアカウント'),
-        h('p', null, h('strong', null, auth.user?.name || ''), h('br'), auth.user?.email || ''),
-        h('p', { class: 'muted small' }, 'Google ドライブ'),
-        h('p', { class: 'conn-text' }, h('span', { class: 'conn-dot', 'data-conn': state.conn }), h('span', { class: 'conn-label' }, '接続中')),
-        h('p', { class: 'muted small' }, 'ドライブ内のこのアプリ専用領域に保存しています（ドライブの画面には表示されません）。'),
-        h('div', { class: 'row' },
-          h('button', { class: 'btn', onclick: reconnect }, '再接続'),
-          h('button', { class: 'btn', onclick: logout }, 'ログアウト')),
-      ]);
-  account.append(accountBtn, menu);
-
-  gridEl = h('div', { class: 'grid' });
+  accountEl = renderAccount();
+  gridEl = h('div', { class: 'grid-area' });
   resultBarEl = h('div', { class: 'resultbar' });
+  projectBarEl = h('nav', { class: 'projectbar', 'aria-label': 'プロジェクト' });
   const saveEl = h('div', { class: 'save-status', 'aria-live': 'polite' });
   renderSaveStatus(saveEl);
 
   root.replaceChildren(
     h('header', { class: 'topbar' },
-      h('div', { class: 'brand' }, CONFIG.appName, isDemo && h('span', { class: 'demo-badge' }, 'デモ')),
+      h('div', { class: 'brand' }, h('img', { class: 'brand-icon', src: 'icon.svg', alt: '' }), CONFIG.appName, isDemo() && h('span', { class: 'demo-badge', title: 'データはページを閉じると消えます' }, 'デモ（保存されません）')),
       h('button', { class: 'btn primary', onclick: pickFiles }, '＋ 画像を追加'),
       h('div', { class: 'filter-wrap' }, filterBtnEl, filterPanelEl),
       sort,
       h('div', { class: 'spacer' }),
       h('div', { class: 'upload-status' }),
       saveEl,
-      account),
+      accountEl),
+    projectBarEl,
     resultBarEl,
     h('main', { class: 'grid-wrap' }, gridEl),
+    h('footer', { class: 'app-foot' }, h('a', { href: 'privacy.html' }, 'プライバシーポリシー')),
     fileInput,
-    h('div', { class: 'drop-overlay' }, h('div', null, 'ドロップして画像を追加')));
+    h('div', { class: 'drop-overlay' }, h('div', { class: 'drop-text' })));
 
-  document.addEventListener('click', (e) => {
-    if (!account.contains(e.target)) account.classList.remove('open');
-    // 再描画で外れた要素（パネル内のボタン）のクリックでは閉じない
-    if (!filterPanelEl.hidden && e.target.isConnected && !filterPanelEl.parentElement.contains(e.target)) closeFilterPanel();
-  });
+  if (!docListenerSet) {
+    docListenerSet = true;
+    document.addEventListener('click', (e) => {
+      if (accountEl && !accountEl.contains(e.target)) accountEl.classList.remove('open');
+      // 再描画で外れた要素（パネル内のボタン）のクリックでは閉じない
+      if (filterPanelEl && !filterPanelEl.hidden && e.target.isConnected && !filterPanelEl.parentElement.contains(e.target)) closeFilterPanel();
+      document.querySelectorAll('.project-menu.open').forEach((m) => { if (!m.contains(e.target)) m.classList.remove('open'); });
+    });
+  }
   setConn(state.conn);
+  renderProjectBar();
   renderResultBar();
   renderGrid();
   updateUploadStatus();
   setupDropAndPaste();
 }
 
+// 右上：デモなら「ログイン」、ログイン中ならアカウントのメニュー
+function renderAccount() {
+  if (isDemo()) {
+    return h('div', { class: 'account' },
+      h('button', {
+        class: 'btn primary', onclick: login, disabled: !CONFIG.googleClientId,
+        title: 'Google でログインすると、Google ドライブに保存されます',
+      }, 'ログイン'));
+  }
+  const el = h('div', { class: 'account' });
+  el.append(
+    h('button', {
+      class: 'account-btn', 'aria-haspopup': 'true',
+      onclick: (e) => { e.stopPropagation(); el.classList.toggle('open'); },
+    },
+    h('span', { class: 'conn-dot', 'data-conn': state.conn }),
+    auth.user?.picture ? h('img', { src: auth.user.picture, alt: '', referrerpolicy: 'no-referrer' }) : (auth.user?.email || 'アカウント')),
+    h('div', { class: 'account-menu' },
+      h('p', { class: 'muted small' }, 'ログイン中のアカウント'),
+      h('p', null, h('strong', null, auth.user?.name || ''), h('br'), auth.user?.email || ''),
+      h('p', { class: 'muted small' }, 'Google ドライブ'),
+      h('p', { class: 'conn-text' }, h('span', { class: 'conn-dot', 'data-conn': state.conn }), h('span', { class: 'conn-label' }, '接続中')),
+      h('p', { class: 'muted small' }, 'ドライブ内のこのアプリ専用領域に保存しています（ドライブの画面には表示されません）。'),
+      h('div', { class: 'row' },
+        h('button', { class: 'btn', onclick: reconnect }, '再接続'),
+        h('button', { class: 'btn', onclick: logout }, 'ログアウト'))));
+  return el;
+}
+
+// ───── プロジェクト ─────
+const projectById = (id) => state.projects.find((p) => p.id === id);
+const currentProjectId = () => (projectById(state.view) ? state.view : null);
+const viewName = () => projectById(state.view)?.name || 'すべて';
+const sortedProjects = () => [...state.projects].sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+
+function setView(v) {
+  state.view = v;
+  renderProjectBar();
+  renderResultBar();
+  renderGrid();
+}
+
+function renderProjectBar() {
+  if (!projectBarEl) return;
+  const count = (id) => state.records.filter((r) => r.projectId === id).length;
+  const tab = (view, label, n, extra) => h('div', { class: `ptab ${state.view === view ? 'active' : ''}` },
+    h('button', { class: 'ptab-btn', 'aria-current': state.view === view ? 'page' : null, onclick: () => setView(view) },
+      label, h('span', { class: 'n' }, String(n))),
+    extra);
+  projectBarEl.replaceChildren(
+    tab(VIEW_ALL, 'すべて', state.records.length),
+    h('span', { class: 'pdivider', 'aria-hidden': 'true' }),
+    ...sortedProjects().map((p) => tab(p.id, p.name, count(p.id), state.view === p.id ? projectMenu(p) : null)),
+    h('button', { class: 'ptab-add', onclick: createProject }, '＋ プロジェクト'));
+  const dt = document.querySelector('.drop-text');
+  if (dt) dt.textContent = currentProjectId() ? `ドロップして「${viewName()}」に追加` : 'ドロップして画像を追加（入れるプロジェクトを選びます）';
+}
+
+function projectMenu(p) {
+  const menu = h('div', { class: 'project-menu' });
+  menu.append(
+    h('button', {
+      class: 'ptab-more', title: 'プロジェクトの操作', 'aria-label': `${p.name} の操作`,
+      onclick: (e) => { e.stopPropagation(); menu.classList.toggle('open'); },
+    }, '…'),
+    h('div', { class: 'project-menu-list' },
+      h('button', { onclick: () => renameProject(p) }, '名前を変更'),
+      h('button', { class: 'danger-text', onclick: () => deleteProject(p) }, 'プロジェクトを削除')));
+  return menu;
+}
+
+const nameTaken = (name, exceptId) => state.projects.some((p) => p.id !== exceptId && p.name === name);
+
+// 名前を確かめてプロジェクトを作る。同じ名前があれば null
+function addProject(name) {
+  if (nameTaken(name)) { toast(`「${name}」はすでにあります`, 'error'); return null; }
+  const p = { id: crypto.randomUUID(), name, createdAt: new Date().toISOString() };
+  state.projects.push(p);
+  markDirty(0);
+  return p;
+}
+
+async function createProject() {
+  const name = await promptDialog({ title: '新しいプロジェクト', placeholder: 'プロジェクト名', ok: '作成' });
+  if (!name) return;
+  const p = addProject(name);
+  if (p) setView(p.id); // 作ったプロジェクトを開く（このあと追加する画像はここに入る）
+}
+
+// 画像を入れるプロジェクトを選ぶ（その場で新しく作ることもできる）。キャンセル時は null
+function chooseProjectDialog(n) {
+  return openModal((dlg, finish) => {
+    const input = h('input', { type: 'text', placeholder: '新しいプロジェクト名', maxlength: 60 });
+    const create = (e) => {
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) { input.focus(); return; }
+      const p = addProject(name);
+      if (p) finish(p.id);
+    };
+    const list = sortedProjects();
+    dlg.append(
+      h('h2', null, list.length ? `${n} 枚の画像をどのプロジェクトに追加しますか？` : 'まずプロジェクトを作成してください'),
+      list.length
+        ? h('div', { class: 'choose-list' }, list.map((p) => h('button', { type: 'button', class: 'btn choose-item', onclick: () => finish(p.id) }, p.name)))
+        : h('p', { class: 'muted' }, '画像はプロジェクトごとに管理します。プロジェクト名を入力すると、作成してそこに画像を追加します。'),
+      h('form', { class: 'choose-new', onsubmit: create },
+        input,
+        h('button', { type: 'submit', class: 'btn primary' }, list.length ? '作成して追加' : '作成')),
+      h('div', { class: 'confirm-actions' },
+        h('button', { type: 'button', class: 'btn', onclick: () => finish(null) }, 'キャンセル')));
+    return list.length ? dlg.querySelector('.choose-item') : input;
+  }, null);
+}
+
+async function renameProject(p) {
+  const name = await promptDialog({ title: 'プロジェクト名を変更', value: p.name, ok: '変更' });
+  if (!name || name === p.name) return;
+  if (nameTaken(name, p.id)) { toast(`「${name}」はすでにあります`, 'error'); return; }
+  p.name = name;
+  markDirty(0);
+  renderProjectBar();
+  renderResultBar();
+  renderGrid();
+}
+
+// 記録の画像ファイルを消し、記録も一覧から外す。途中で失敗したら止めて false
+async function removeRecords(recs) {
+  if (!(await ensureConnected())) return false;
+  for (const rec of recs) {
+    try {
+      await store.remove(rec.imageFileId);
+      await store.remove(rec.thumbFileId);
+    } catch (e) {
+      if (e instanceof AuthError) setConn('reconnect');
+      toast(`削除できませんでした: ${e.message}`, 'error');
+      markDirty(0);
+      return false;
+    }
+    forgetUrl(rec.imageFileId);
+    forgetUrl(rec.thumbFileId);
+    state.records = state.records.filter((r) => r !== rec);
+    state.orphans = state.orphans.filter((r) => r !== rec);
+    tiles.delete(rec.id);
+  }
+  markDirty(0);
+  return true;
+}
+
+async function deleteProject(p) {
+  const recs = state.records.filter((r) => r.projectId === p.id);
+  const ok = await confirmDialog({
+    title: `プロジェクト「${p.name}」を削除しますか？`,
+    body: h('p', null, recs.length
+      ? (isDemo()
+        ? `中の画像 ${recs.length} 件も一緒に削除します。`
+        : `中の画像 ${recs.length} 件と、その評価も Google ドライブから削除します。元に戻すことはできません。`)
+      : 'このプロジェクトに画像はありません。'),
+    ok: recs.length ? `画像 ${recs.length} 件ごと削除` : '削除する',
+    danger: true,
+  });
+  if (!ok) return;
+  state.pending.filter((x) => x.projectId === p.id).forEach(cancelPending);
+  const done = await removeRecords(recs);
+  if (done) {
+    state.projects = state.projects.filter((x) => x !== p);
+    markDirty(0);
+    toast(`「${p.name}」を削除しました`);
+  }
+  setView(done ? VIEW_ALL : state.view);
+}
+
+// 以前の版で追加した、どのプロジェクトにも入っていない画像の削除を確認する
+async function askDeleteOrphans() {
+  const n = state.orphans.length;
+  const ok = await confirmDialog({
+    title: `プロジェクトに入っていない画像が ${n} 件あります`,
+    body: [
+      h('p', null, '以前の版で追加した画像です。この版では画像はすべてプロジェクトで管理するため、一覧には表示されません。'),
+      h('p', null, `この ${n} 件の画像と評価を Google ドライブから削除しますか？元に戻すことはできません。`),
+      h('p', { class: 'muted small' }, '「あとで」を選ぶと削除せずに残し、次にログインしたときにもう一度確認します。'),
+    ],
+    ok: `${n} 件を削除する`,
+    danger: true,
+  });
+  if (!ok) return;
+  if (await removeRecords([...state.orphans])) toast(`${n} 件を削除しました`);
+}
+
 function inRange(v, { min, max }) {
   return (min == null || v >= min - 1e-9) && (max == null || v <= max + 1e-9);
 }
 
+function inView(r) {
+  return state.view === VIEW_ALL || r.projectId === state.view;
+}
+
 function visibleRecords() {
   const f = state.filters;
-  const list = state.records.filter((r) => RATINGS.every(({ key }) => inRange(r.ratings[key], f[key])));
+  const list = state.records.filter((r) => inView(r) && RATINGS.every(({ key }) => inRange(r.ratings[key], f[key])));
   const [field, dir] = state.sort.split('-');
   const sign = dir === 'asc' ? 1 : -1;
   const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -512,14 +783,14 @@ function filterCount() {
 
 function renderResultBar() {
   if (!resultBarEl) return;
-  const total = state.records.length;
+  const total = state.records.filter(inView).length;
   const shown = visibleRecords().length;
   const f = state.filters;
   const chips = RATINGS.filter(({ key }) => isActive(f[key])).map(({ key, name }) => h('button', {
     class: 'chip active', onclick: () => { f[key].min = null; f[key].max = null; onFilterChange(); },
   }, `${name}: ${rangeText(f[key])}`, h('span', { class: 'x' }, '×')));
   resultBarEl.replaceChildren(
-    h('span', { class: 'count' }, chips.length ? `${shown} / ${total} 件` : `${total} 件`),
+    h('span', { class: 'count' }, h('strong', null, viewName()), '　', chips.length ? `${shown} / ${total} 件` : `${total} 件`),
     ...chips,
     ...(chips.length > 1 ? [h('button', { class: 'link', onclick: clearFilters }, 'すべて解除')] : []));
   const n = filterCount();
@@ -680,30 +951,8 @@ function updatePendingTile(p) {
   }
 }
 
-function renderGrid() {
-  if (!gridEl) return;
-  const list = visibleRecords();
-  const items = [
-    ...state.pending.map((p) => { const t = getPendingTile(p); updatePendingTile(p); return { el: t.el, ratio: tileRatio(p.width, p.height) }; }),
-    ...list.map((r) => ({ el: getTile(r).el, ratio: tileRatio(r.width, r.height) })),
-  ];
-  for (const [id] of tiles) if (!state.records.some((r) => r.id === id)) tiles.delete(id);
-  for (const [id] of pendingTiles) if (!state.pending.some((p) => p.tempId === id)) pendingTiles.delete(id);
-
-  if (!items.length) {
-    gridEl.classList.add('empty');
-    gridEl.replaceChildren(state.records.length
-      ? h('div', { class: 'empty-state' }, h('p', null, '条件に合う画像がありません。'),
-        h('button', { class: 'btn', onclick: clearFilters }, '絞り込みを解除'))
-      : h('div', { class: 'empty-state drop-hint', onclick: pickFiles },
-        h('div', { class: 'big-plus' }, '＋'),
-        h('p', null, h('strong', null, '画像をここにドラッグ＆ドロップ')),
-        h('p', { class: 'muted' }, 'または、クリックしてファイルを選択／画像をコピーして Ctrl+V で貼り付け'),
-        h('p', { class: 'muted small' }, `JPEG / PNG / GIF / WebP / AVIF、1枚 ${CONFIG.maxFileSizeMB}MB まで。複数枚まとめて追加できます。`)));
-    return;
-  }
-  gridEl.classList.remove('empty');
-  const W = gridEl.clientWidth || window.innerWidth - 32;
+// 石積み（各列の高さが揃うように並べる）
+function masonry(items, W) {
   const gap = 14;
   const target = W < 640 ? 180 : 240;
   const n = Math.max(1, Math.floor((W + gap) / (target + gap)));
@@ -714,7 +963,61 @@ function renderGrid() {
     c.el.append(it.el);
     c.h += colW / it.ratio + 52 + gap;
   }
-  gridEl.replaceChildren(...cols.map((c) => c.el));
+  return h('div', { class: 'grid' }, cols.map((c) => c.el));
+}
+
+const pendingItems = (projectId) => state.pending.filter((p) => p.projectId === projectId)
+  .map((p) => { const t = getPendingTile(p); updatePendingTile(p); return { el: t.el, ratio: tileRatio(p.width, p.height) }; });
+const recordItems = (list) => list.map((r) => ({ el: getTile(r).el, ratio: tileRatio(r.width, r.height) }));
+
+function renderGrid() {
+  if (!gridEl) return;
+  for (const [id] of tiles) if (!state.records.some((r) => r.id === id)) tiles.delete(id);
+  for (const [id] of pendingTiles) if (!state.pending.some((p) => p.tempId === id)) pendingTiles.delete(id);
+
+  const noMatch = () => h('div', { class: 'empty-state' }, h('p', null, '条件に合う画像がありません。'),
+    h('button', { class: 'btn', onclick: clearFilters }, '絞り込みを解除'));
+
+  // プロジェクトがまだない：作成を促す
+  if (!state.projects.length) {
+    gridEl.replaceChildren(h('div', { class: 'empty-state drop-hint start-hint' },
+      h('div', { class: 'big-plus' }, '＋'),
+      h('p', null, h('strong', null, 'まずプロジェクトを作成しましょう')),
+      h('p', { class: 'muted' }, '画像はプロジェクトごとに分けて管理します。'),
+      h('button', { class: 'btn primary', onclick: createProject }, '＋ プロジェクトを作成')));
+    return;
+  }
+
+  const list = visibleRecords();
+  const W = gridEl.clientWidth || window.innerWidth - 40;
+
+  // 「すべて」：プロジェクト名の下に、そのプロジェクトの画像を並べる
+  if (state.view === VIEW_ALL) {
+    const filtering = filterCount() > 0;
+    const sections = sortedProjects().map((p) => {
+      const items = [...pendingItems(p.id), ...recordItems(list.filter((r) => r.projectId === p.id))];
+      if (!items.length && filtering) return null;
+      return h('section', { class: 'group' },
+        h('h2', { class: 'group-head' },
+          h('button', { class: 'group-link', title: 'このプロジェクトを開く', onclick: () => setView(p.id) }, p.name),
+          h('span', { class: 'n' }, `${items.length} 件`)),
+        items.length ? masonry(items, W) : h('p', { class: 'group-empty muted small' }, 'まだ画像がありません'));
+    }).filter(Boolean);
+    gridEl.replaceChildren(...(sections.length ? sections : [noMatch()]));
+    return;
+  }
+
+  // プロジェクトを開いているとき
+  const items = [...pendingItems(state.view), ...recordItems(list)];
+  if (items.length) { gridEl.replaceChildren(masonry(items, W)); return; }
+  gridEl.replaceChildren(state.records.some(inView)
+    ? noMatch()
+    : h('div', { class: 'empty-state drop-hint', onclick: pickFiles },
+      h('div', { class: 'big-plus' }, '＋'),
+      h('p', null, h('strong', null, '画像をここにドラッグ＆ドロップ')),
+      h('p', null, `「${viewName()}」に追加されます。`),
+      h('p', { class: 'muted' }, 'または、クリックしてファイルを選択／画像をコピーして Ctrl+V で貼り付け'),
+      h('p', { class: 'muted small' }, `JPEG / PNG / GIF / WebP / AVIF、1枚 ${CONFIG.maxFileSizeMB}MB まで。複数枚まとめて追加できます。`)));
 }
 
 let resizeTimer;
@@ -752,7 +1055,9 @@ async function deleteRecord(rec) {
   const ok = await confirmDialog({
     title: 'この画像を削除しますか？',
     body: [
-      h('p', null, `「${rec.fileName}」の画像（元画像・縮小画像）と、三つの評価を Google ドライブから削除します。元に戻すことはできません。`),
+      h('p', null, isDemo()
+        ? `「${rec.fileName}」と、その評価を削除します。`
+        : `「${rec.fileName}」の画像（元画像・縮小画像）と、三つの評価を Google ドライブから削除します。元に戻すことはできません。`),
     ],
     ok: '削除する',
     danger: true,
@@ -775,6 +1080,7 @@ async function deleteRecord(rec) {
   toast('削除しました');
   renderGrid();
   renderResultBar();
+  renderProjectBar();
 }
 
 init();

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>I like it</title>
+  <!-- 黒地・クリーム色・赤のハート（アルバムの配色を参考にしたオリジナル） -->
+  <rect width="512" height="512" rx="112" fill="#0d0b0a"/>
+  <path fill="#d0130f" d="M256 444 C206 400 84 322 72 224 C62 144 120 86 186 90 C222 92 246 114 256 140 C266 114 290 92 326 90 C392 86 450 144 440 224 C428 322 306 400 256 444 Z"/>
+  <text x="256" y="300" text-anchor="middle"
+        font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="190"
+        letter-spacing="-6" fill="#f2e6c9">it</text>
+</svg>
