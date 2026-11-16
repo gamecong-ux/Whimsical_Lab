@@ -115,11 +115,15 @@ const SNAP_EASE = 0.2;
 
 function snap() {
   clearTimeout(snapTimer);
-  moveTo(nearest(target), SNAP_EASE);
+  // ホイール操作中なら確定済みの作品へ戻す（貯めた途中の量では進めない）
+  const goal = wheelBase ?? nearest(target);
+  wheelBase = null;
+  moveTo(goal, SNAP_EASE);
 }
 
 function select(index) {
   clearTimeout(snapTimer);
+  wheelBase = null;
   const normalized = ((index % works.length) + works.length) % works.length;
   // 現在の向きから最短の回り方で目的の作品へ
   let goal = -normalized * step;
@@ -133,22 +137,36 @@ document.addEventListener('keydown', event => {
   if (event.key === 'ArrowRight' || event.key === 'ArrowDown') { event.preventDefault(); select(selected + 1); }
 });
 
-// ホイール・トラックパッドとも、スクロール量だけで回す（PIXELS_PER_WORK で1作品）。
+// ホイール・トラックパッド：回している間に作品を送る方式。
+// - スクロール量を貯め、ADVANCE_PIXELS に届いた時点で、その場で次の作品へなめらかに送る（止めた後に勝手に進まない）
+// - 届くまでは、貯めた量に応じて円盤が少しだけ傾き（最大 LEAN 作品分）、回している手応えを返す
+// - 届かずに止めると、0.7秒後に元の作品へゆっくり戻る
 // マウスの1刻みは環境により1回で100px前後届くことも、細かく分かれて届くこともあるため、機器の種類は判定しない。
-// 止めた位置から最寄りの作品へ揃えるので、半作品分（PIXELS_PER_WORK の半分）を超えて回すと次へ進む。
-// 1刻み100pxのマウスなら6刻み、133pxなら4刻みで次の作品へ。それより少なければ元の作品へ戻る。
-// 入力が0.7秒途切れたら、最寄りの作品へゆっくり揃える（途中で止めてもすぐには戻らない）。
-const PIXELS_PER_WORK = 1000;
+// 1刻み100pxのマウスなら5刻み、133pxなら4刻みで次の作品へ。
+const ADVANCE_PIXELS = 500;
+const LEAN = 0.4;
 const LINE_PIXELS = 40; // 行単位（deltaMode 1）で届くときの1行あたりの量
+let wheelBase = null; // ホイール操作中の、確定している作品の角度
+let wheelAccum = 0;
 document.addEventListener('wheel', event => {
   if (event.ctrlKey) return; // ピンチ操作・ブラウザのズームは妨げない
   event.preventDefault();
   const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
   if (!delta) return;
   const pixels = event.deltaMode === 1 ? delta * LINE_PIXELS
-    : event.deltaMode === 2 ? Math.sign(delta) * PIXELS_PER_WORK
+    : event.deltaMode === 2 ? Math.sign(delta) * ADVANCE_PIXELS
       : delta;
-  moveTo(target - pixels / PIXELS_PER_WORK * step, 0.07);
+  if (wheelBase === null) { wheelBase = nearest(target); wheelAccum = 0; }
+  // 逆向きに回し始めたら、それまでの貯めをいったん捨てて素直に反応させる
+  if (Math.sign(pixels) !== Math.sign(wheelAccum)) wheelAccum = 0;
+  wheelAccum += pixels;
+  if (Math.abs(wheelAccum) >= ADVANCE_PIXELS) {
+    wheelBase -= Math.sign(wheelAccum) * step;
+    wheelAccum = 0;
+    moveTo(wheelBase, 0.1);
+  } else {
+    moveTo(wheelBase - wheelAccum / ADVANCE_PIXELS * LEAN * step, 0.08);
+  }
   clearTimeout(snapTimer);
   snapTimer = setTimeout(snap, SNAP_DELAY);
 }, { passive: false });
@@ -163,6 +181,7 @@ const pointerAngle = event => {
 dial.addEventListener('pointerdown', event => {
   if (event.button !== 0) return;
   clearTimeout(snapTimer);
+  wheelBase = null;
   drag = { id: event.pointerId, angle: pointerAngle(event), moved: false };
   dial.setPointerCapture(event.pointerId);
   dial.classList.add('is-dragging');
