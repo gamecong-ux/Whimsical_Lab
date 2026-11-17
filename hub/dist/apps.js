@@ -371,10 +371,9 @@ function layoutLight() {
   // スクリーンは右へ向かって手前に回した台形なので、左端の高さは回転前の高さ（offsetHeight）のまま
   const pvLocal = { left: pv.left - box.left, right: pv.right - box.left, top: pv.top - box.top, bottom: pv.bottom - box.top };
   const towardPreview = pvLocal.left > start.x + 120;
-  const edgeHalf = preview.offsetHeight * 0.42;
-  const centerY = (pvLocal.top + pvLocal.bottom) / 2;
+  // screen.webp の左端の位置（画像の幅の 3.4%）と、その縦の範囲（高さの 16%〜82%）に分光の幅を合わせる
   const far = towardPreview
-    ? { left: pvLocal.left, right: Math.min(pvLocal.left + pv.width * 0.35, box.width), top: centerY - edgeHalf, bottom: centerY + edgeHalf }
+    ? { left: pvLocal.left + pv.width * 0.034, right: Math.min(pvLocal.left + pv.width * 0.3, box.width), top: pvLocal.top + pv.height * 0.16, bottom: pvLocal.top + pv.height * 0.82 }
     : { left: box.width * 0.85, right: box.width, top: start.y - 140, bottom: start.y + 140 };
 
   // プリズム：左面の中点が光線の高さに来るように置く
@@ -405,12 +404,13 @@ function layoutLight() {
     const y1 = y0 + origin;
     const ty0 = far.top + span * i / n;
     const ty1 = far.top + span * (i + 1) / n;
-    // プリズムの内側から始めて、出口のつなぎ目を自然に見せる
-    const points = `${exit.x - 6},${y0} ${far.right},${ty0 - 6} ${far.right},${ty1 + 6} ${exit.x - 6},${y1}`;
+    // プリズムの内側から始め、スクリーンの左端でちょうど左端の高さいっぱいに広がり、
+    // そこから先はスクリーンの中へまっすぐ入って溶ける（分光とスクリーンの幅を合わせる）
+    const points = `${exit.x - 6},${y0} ${far.left},${ty0} ${far.right},${ty0} ${far.right},${ty1} ${far.left},${ty1} ${exit.x - 6},${y1}`;
     beamBands[i].setAttribute('points', points);
-    // ぼかした層は少し太く、上下にも広げる
-    const pad = span * 0.08;
-    softBands[i].setAttribute('points', `${exit.x - 10},${y0 - 6} ${far.right},${ty0 - pad} ${far.right},${ty1 + pad} ${exit.x - 10},${y1 + 6}`);
+    // ぼかした層は、左端の範囲から大きくはみ出さない程度に少しだけ太くする
+    const pad = span * 0.03;
+    softBands[i].setAttribute('points', `${exit.x - 10},${y0 - 4} ${far.left},${ty0 - pad} ${far.right},${ty0 - pad} ${far.right},${ty1 + pad} ${far.left},${ty1 + pad} ${exit.x - 10},${y1 + 4}`);
   });
 
   // スクリーンの左端（s）までは明るく、そこから先はスクリーンの光へ溶け込むように消す
