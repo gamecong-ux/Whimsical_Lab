@@ -44,3 +44,6 @@ footer{position:relative;z-index:4;display:flex;align-items:center;justify-conte
 /* ノイズ（フィルムの粒子）：文字とアイコン以外に乗せる。
    .stage-grain を1枚だけ置き、円盤・光・スクリーン・背景の上、文字・アイコンの下に重ねる（画面の外の帯まで広げる） */
 .stage-grain{position:absolute;z-index:5;inset:-120vh -120vw;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:220px 220px;mix-blend-mode:overlay;opacity:.24}
+/* 回転中は選択中のアイコンも縁の外に置いたまま（点も表示）。円盤が中心で止まってから縁の上へ移る */
+.stage.is-rotating .dial-item.is-selected{--r:.565}
+.stage.is-rotating .dial-dot.is-selected{opacity:.8}
