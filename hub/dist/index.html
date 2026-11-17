@@ -13,6 +13,15 @@
 <body>
   <!-- 光のスクリーンをゆらゆら歪ませるフィルター：ゆっくり変化するノイズで画像を少しずらす -->
   <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <filter id="rgb-shift" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
+      <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
+      <feOffset in="red" dx="-3" dy="0" result="redShift"><animate attributeName="dx" dur="4s" values="-3;-5;-2;-3" repeatCount="indefinite"/></feOffset>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green"/>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue"/>
+      <feOffset in="blue" dx="3" dy="1" result="blueShift"><animate attributeName="dx" dur="4s" values="3;5;2;3" repeatCount="indefinite"/></feOffset>
+      <feBlend in="redShift" in2="green" mode="screen" result="rg"/>
+      <feBlend in="rg" in2="blueShift" mode="screen"/>
+    </filter>
     <filter id="screen-wobble" x="-5%" y="-8%" width="110%" height="116%" color-interpolation-filters="sRGB">
       <feTurbulence type="fractalNoise" baseFrequency="0.004 0.009" numOctaves="2" seed="7" result="noise">
         <animate attributeName="baseFrequency" dur="14s" values="0.004 0.009;0.006 0.012;0.0045 0.008;0.004 0.009" repeatCount="indefinite"/>
@@ -39,7 +48,7 @@
         <h1 id="work-title"></h1>
         <div class="screen" id="preview">
           <div class="screen-light" aria-hidden="true"></div>
-          <img class="screen-shot" id="screen-shot" alt="" hidden>
+          <a class="screen-shot" id="screen-shot-link" hidden><img id="screen-shot" alt=""></a>
           <div class="screen-content"><p id="work-description"></p><a id="open-app" class="open-app" href="#">アプリを開く <span aria-hidden="true">→</span></a></div>
         </div>
       </article>

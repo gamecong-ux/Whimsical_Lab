@@ -48,7 +48,8 @@ footer{position:relative;z-index:4;display:flex;align-items:center;justify-conte
 .stage.is-rotating .dial-item.is-selected{--r:.54}
 .stage.is-rotating .dial-dot.is-selected{opacity:.8}
 /* スクリーンに置く作品の画面：白い余白のあるチェキ（インスタント写真）のように、下の余白を広めにとって少し傾ける */
-.screen-shot{position:absolute;z-index:2;left:33%;top:21%;width:38%;height:auto;box-sizing:border-box;padding:2.2% 2.2% 7.5%;background:#fbfaf8;border-radius:3px;transform:rotate(-3deg);transform-origin:50% 50%;box-shadow:0 2px 3px #0000002e,0 14px 30px #00000038,0 0 0 1px #0000000d}
-.screen-shot[hidden]{display:none}
+.screen-shot{position:absolute;z-index:2;left:33%;top:22%;width:38%;display:block;padding:.9% .9% 3%;background:#fbfaf8;border-radius:2px;transform:rotate(-3deg);transform-origin:50% 50%;box-shadow:0 2px 3px #0000002e,0 14px 30px #00000038;filter:url(#rgb-shift);text-decoration:none}.screen-shot img{display:block;width:100%;height:auto}.screen-shot[href]{cursor:pointer;transition:transform .3s ease,opacity 0s .2s}.screen-shot[href]:hover{transform:rotate(-2deg) translateY(-6px) scale(1.02)}.screen-shot:focus-visible{outline:2px solid #fff;outline-offset:6px}
+
 /* チェキはスクリーンのゆらぎ・ぼかしの外に置き、スクリーンと同じタイミングで消える・現れる */
-.screen-shot{transition:opacity 0s .2s}.stage.is-rotating .screen-shot{opacity:0;transition:opacity .2s ease .06s}
+.screen-shot{transition:opacity 0s .2s}.stage.is-rotating .screen-shot{opacity:0;pointer-events:none;transition:opacity .2s ease .06s}
+.screen-shot[hidden]{display:none}

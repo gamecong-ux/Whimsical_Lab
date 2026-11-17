@@ -19,6 +19,7 @@ const description = document.querySelector('#work-description');
 const kind = document.querySelector('#work-kind');
 const action = document.querySelector('#open-app');
 const screenShot = document.querySelector('#screen-shot');
+const screenShotLink = document.querySelector('#screen-shot-link');
 const counter = document.querySelector('#counter');
 const detailNumber = document.querySelector('#detail-number');
 const stage = document.querySelector('.stage');
@@ -86,12 +87,16 @@ function render() {
   counter.textContent = `APP ${String(selected + 1).padStart(2, '0')} / ${String(works.length).padStart(2, '0')}`;
   detailNumber.textContent = String(selected + 1).padStart(2, '0');
   // スクリーンに映す作品の画面画像
+  // 写真を押すとアプリへ移動する（公開URLがある作品だけ）
   if (work.image) {
     screenShot.src = work.image;
-    screenShot.alt = `${work.name}の画面`;
-    screenShot.hidden = false;
+    screenShot.alt = destination ? `${work.name}を開く` : `${work.name}の画面`;
+    screenShotLink.hidden = false;
+    if (destination) screenShotLink.href = destination;
+    else screenShotLink.removeAttribute('href');
   } else {
-    screenShot.hidden = true;
+    screenShotLink.hidden = true;
+    screenShotLink.removeAttribute('href');
     screenShot.removeAttribute('src');
     screenShot.alt = '';
   }
