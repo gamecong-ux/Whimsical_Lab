@@ -137,6 +137,7 @@ const easeInOut = t => (1 - Math.cos(Math.PI * t)) / 2;
 // 回転中（アニメーション中・ドラッグ中・ホイールで傾けている間）は、光線・分光・アイコンの光を消す
 function refreshLight() {
   const rotating = !!frame || !!drag?.moved || wheelBase !== null;
+  if (rotating && !stage.classList.contains('is-rotating') && typeof resetPhoto === 'function') resetPhoto();
   stage.classList.toggle('is-rotating', rotating);
 }
 
@@ -524,6 +525,32 @@ function warpTo(goal) {
   };
   warpFrame = requestAnimationFrame(step);
 }
-for (const [type, goal] of [['pointerenter', WARP_HOVER], ['pointerleave', WARP_SCALE], ['focus', WARP_HOVER], ['blur', WARP_SCALE]]) {
-  screenShotLink.addEventListener(type, () => warpTo(goal));
+// 一度実体化したら、カーソルが離れても5秒そのまま保ち、それから残像へ戻る（その間にまた合わせれば保ち続ける）
+const SOLID_HOLD = 5000;
+let solidTimer;
+function solidify() {
+  clearTimeout(solidTimer);
+  if (!screenShotLink.classList.contains('is-solid')) {
+    screenShotLink.classList.add('is-solid');
+    warpTo(WARP_HOVER);
+  }
+}
+function releaseLater() {
+  clearTimeout(solidTimer);
+  solidTimer = setTimeout(() => {
+    screenShotLink.classList.remove('is-solid');
+    warpTo(WARP_SCALE);
+  }, SOLID_HOLD);
+}
+screenShotLink.addEventListener('pointerenter', solidify);
+screenShotLink.addEventListener('focus', solidify);
+screenShotLink.addEventListener('pointerleave', releaseLater);
+screenShotLink.addEventListener('blur', releaseLater);
+// 円盤が回り始めたら、次の作品の写真は残像から始める
+function resetPhoto() {
+  clearTimeout(solidTimer);
+  cancelAnimationFrame(warpFrame);
+  screenShotLink.classList.remove('is-solid');
+  warpValue = WARP_SCALE;
+  warpMap.setAttribute('scale', String(WARP_SCALE));
 }

@@ -72,9 +72,9 @@ footer{position:relative;z-index:4;display:flex;align-items:center;justify-conte
 /* ふだん：光の残像（不透明度10%、強いぼかし、明るく淡く）。カーソルを外したときは 2.5 秒かけてゆっくり戻る */
 .screen-shot{filter:blur(4px) brightness(1.3) saturate(.8) opacity(.1);animation:ghost-sway 6s ease-in-out infinite alternate}
 .screen-shot[href]{transition:transform 1.6s ease,filter 2.5s cubic-bezier(.3,.1,.3,1),opacity 0s .2s}
-/* カーソルを合わせる：2.5 秒かけて、最初はゆっくり・後半で速く実体化（約70%）。その後も透明度がゆっくり揺らぐ */
-.screen-shot:hover,.screen-shot:focus-visible{filter:blur(0) brightness(1) saturate(1) opacity(.76);transition:transform 1.6s ease,filter 2.5s cubic-bezier(.65,0,.85,.35),opacity 0s .2s}
-.screen-shot:hover img,.screen-shot:focus-visible img{animation:photo-breathe 5s ease-in-out 2.5s infinite}
+/* カーソルを合わせる（.is-solid、apps.js が付け外し）：2.5 秒かけて、最初はゆっくり・後半で速く実体化（約70%）。その後も透明度がゆっくり揺らぐ */
+.screen-shot.is-solid{filter:blur(0) brightness(1) saturate(1) opacity(.76);transition:transform 1.6s ease,filter 2.5s cubic-bezier(.65,0,.85,.35),opacity 0s .2s}
+.screen-shot.is-solid img{animation:photo-breathe 5s ease-in-out 2.5s infinite}
 /* ホバーできない端末では最初から実体化、動きを減らす設定では揺れを止める */
 @media(hover:none){.screen-shot{filter:opacity(.85);animation:none}}
-@media(prefers-reduced-motion:reduce){.screen-shot{animation:none}.screen-shot:hover img,.screen-shot:focus-visible img{animation:none}}
+@media(prefers-reduced-motion:reduce){.screen-shot{animation:none}.screen-shot.is-solid img{animation:none}}
