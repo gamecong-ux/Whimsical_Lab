@@ -11,6 +11,17 @@
   <script src="apps.js" defer></script>
 </head>
 <body>
+  <!-- 光のスクリーンの端をぼかすフィルター：輪郭の透明度をぼかして内側へ溶かし（core）、外側にも薄いにじみ（halo）を重ねる -->
+  <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <filter id="screen-soft-edge" x="-18%" y="-25%" width="136%" height="150%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="36" result="blurredAlpha"/>
+      <feComponentTransfer in="blurredAlpha" result="edgeMask"><feFuncA type="linear" slope="1.35" intercept="-0.2"/></feComponentTransfer>
+      <feComposite in="SourceGraphic" in2="edgeMask" operator="in" result="core"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="40" result="haloBlur"/>
+      <feComponentTransfer in="haloBlur" result="halo"><feFuncA type="linear" slope="0.7"/></feComponentTransfer>
+      <feMerge><feMergeNode in="halo"/><feMergeNode in="core"/></feMerge>
+    </filter>
+  </svg>
   <main class="home">
     <header class="site-header">
       <a class="brand" href="./" aria-label="Whimsical Lab ホーム">Whimsical Lab</a>

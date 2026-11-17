@@ -381,9 +381,9 @@ function layoutLight() {
   // スクリーンは右へ向かって手前に回した台形なので、左端の高さは回転前の高さ（offsetHeight）のまま
   const pvLocal = { left: pv.left - box.left, right: pv.right - box.left, top: pv.top - box.top, bottom: pv.bottom - box.top };
   const towardPreview = pvLocal.left > start.x + 120;
-  // screen.webp の左端の位置（画像の幅の 3.4%）と、その縦の範囲（高さの 16%〜82%）に分光の幅を合わせる
+  // screen.webp の左端の位置（画像の幅の約2%。端はぼかしてある）と、その縦の範囲（高さの 24%〜79%）に分光の幅を合わせる
   const far = towardPreview
-    ? { left: pvLocal.left + pv.width * 0.034, right: Math.min(pvLocal.left + pv.width * 0.3, box.width), top: pvLocal.top + pv.height * 0.16, bottom: pvLocal.top + pv.height * 0.82 }
+    ? { left: pvLocal.left + pv.width * 0.02, right: Math.min(pvLocal.left + pv.width * 0.3, box.width), top: pvLocal.top + pv.height * 0.24, bottom: pvLocal.top + pv.height * 0.79 }
     : { left: box.width * 0.85, right: box.width, top: start.y - 140, bottom: start.y + 140 };
 
   // プリズム：左面の中点が光線の高さに来るように置く
