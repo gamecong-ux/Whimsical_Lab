@@ -22,6 +22,13 @@
       <feBlend in="redShift" in2="green" mode="screen" result="rg"/>
       <feBlend in="rg" in2="blueShift" mode="screen"/>
     </filter>
+    <!-- 写真を光の残像のように歪ませるフィルター。歪みの強さ（scale）は apps.js がホバーに合わせて 0 まで下げる -->
+    <filter id="photo-warp" x="-6%" y="-8%" width="112%" height="116%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008 0.02" numOctaves="2" seed="11" result="noise">
+        <animate attributeName="baseFrequency" dur="9s" values="0.008 0.02;0.012 0.026;0.007 0.017;0.008 0.02" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap id="photo-warp-map" in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
     <filter id="screen-wobble" x="-5%" y="-8%" width="110%" height="116%" color-interpolation-filters="sRGB">
       <feTurbulence type="fractalNoise" baseFrequency="0.004 0.009" numOctaves="2" seed="7" result="noise">
         <animate attributeName="baseFrequency" dur="14s" values="0.004 0.009;0.006 0.012;0.0045 0.008;0.004 0.009" repeatCount="indefinite"/>

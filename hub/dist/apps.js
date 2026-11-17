@@ -500,3 +500,25 @@ function fitCanvas() {
 window.addEventListener('resize', fitCanvas);
 scaledLayout.addEventListener('change', fitCanvas);
 fitCanvas();
+
+// ───────── 写真の歪み ─────────
+// ふだんは光の残像のように歪み、カーソルを合わせる（キーボードで選ぶ）と0.5秒かけて歪みが消えて実体化する
+const warpMap = document.querySelector('#photo-warp-map');
+const WARP_SCALE = 14;
+let warpValue = WARP_SCALE;
+let warpFrame = 0;
+function warpTo(goal) {
+  cancelAnimationFrame(warpFrame);
+  const from = warpValue;
+  const start = performance.now();
+  const step = now => {
+    const t = Math.min(1, (now - start) / 500);
+    warpValue = from + (goal - from) * (1 - Math.pow(1 - t, 3));
+    warpMap.setAttribute('scale', warpValue.toFixed(2));
+    if (t < 1) warpFrame = requestAnimationFrame(step);
+  };
+  warpFrame = requestAnimationFrame(step);
+}
+for (const [type, goal] of [['pointerenter', 0], ['pointerleave', WARP_SCALE], ['focus', 0], ['blur', WARP_SCALE]]) {
+  screenShotLink.addEventListener(type, () => warpTo(goal));
+}
