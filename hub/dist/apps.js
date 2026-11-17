@@ -347,8 +347,8 @@ const softGroup = svgEl('g', { filter: 'url(#blur-soft)', mask: 'url(#mask-soft)
 const beamGroup = svgEl('g', { filter: 'url(#blur-beam)', mask: 'url(#mask-beam)', class: 'light-beam' });
 const softBands = BANDS.map(() => softGroup.appendChild(svgEl('polygon')));
 const beamBands = BANDS.map(() => beamGroup.appendChild(svgEl('polygon')));
-const rayGlow = svgEl('line', { class: 'ray-glow', filter: 'url(#blur-ray)' });
-const rayCore = svgEl('line', { class: 'ray-core' });
+const rayGlow = svgEl('line', { class: 'ray-glow', filter: 'url(#blur-ray)', pathLength: '1' });
+const rayCore = svgEl('line', { class: 'ray-core', pathLength: '1' }); // pathLength=1：線が伸びる演出を長さに関係なく同じ指定で行う
 const exitGlow = svgEl('circle', { class: 'exit-glow', r: '14', filter: 'url(#blur-soft)' });
 lightSvg.append(defs, softGroup, beamGroup, rayGlow, rayCore, exitGlow);
 

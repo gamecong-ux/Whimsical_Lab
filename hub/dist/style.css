@@ -24,10 +24,14 @@ footer{position:relative;z-index:4;display:flex;align-items:center;justify-conte
 @media(max-width:700px){.home{--edge:20px;padding-top:23px}.site-header{gap:14px}.brand{font-size:18px;letter-spacing:.07em}.header-counter{padding-left:13px;font-size:8px}.edition{display:none}.stage{min-height:850px}.dial-area{width:630px;height:630px;left:-480px;top:76%}.dial-item{width:42px;height:42px}.prism{width:110px}.detail{left:0;top:7%;height:66%;min-height:0}.detail h1{font-size:30px;white-space:normal;margin:12px 0 17px}.screen{margin:0 -10px 0 0}.screen-content{left:10%;right:30%;bottom:16%;gap:10px}.screen-content p{font-size:11px}.open-app{font-size:12px;gap:8px;align-self:flex-end}footer{font-size:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:0s!important}}
 /* 光の出方：回転中は「内容 → スクリーン → 分光・光線」の順にすばやく消える。
-   止まると、光線と分光が左から右へ伸び（0〜0.5秒）、スクリーンが広がり（0.4〜0.9秒）、内容が現れる（0.85〜1.15秒） */
-.light-svg{clip-path:inset(0 0 0 0);opacity:1;transition:clip-path .5s cubic-bezier(.45,0,.35,1),opacity .1s}
-.stage.is-rotating .light-svg{clip-path:inset(0 100% 0 0);opacity:0;transition:opacity .2s ease .12s,clip-path 0s linear .35s}
-.screen-light{transform-origin:0 50%;transition:opacity .45s ease .4s,transform .5s cubic-bezier(.2,.7,.2,1) .4s}
+   止まると、光線が円盤からプリズムへ伸び（0〜0.2秒）、届いた瞬間（0.2秒）に分光とスクリーンがそのまま表示され、内容が現れる（0.85〜1.15秒） */
+.light-svg{opacity:1;transition:opacity 0s}
+.stage.is-rotating .light-svg{opacity:0;transition:opacity .2s ease .12s}
+.ray-core,.ray-glow{stroke-dasharray:1 1;stroke-dashoffset:0;transition:stroke-dashoffset .2s linear}
+.stage.is-rotating .ray-core,.stage.is-rotating .ray-glow{stroke-dashoffset:1;transition:stroke-dashoffset 0s .35s}
+.light-soft,.light-beam,.exit-glow{transition:opacity 0s .2s}
+.stage.is-rotating .light-soft,.stage.is-rotating .light-beam,.stage.is-rotating .exit-glow{opacity:0;transition:opacity 0s .35s}
+.screen-light{transform-origin:0 50%;transition:opacity 0s .2s,transform 0s .2s}
 .stage.is-rotating .screen-light{opacity:0;transform:scale(.12,.55);transition:opacity .2s ease .06s,transform .26s cubic-bezier(.5,0,.8,.4) .04s}
 .screen-content{transition:opacity .3s ease .85s}
 .stage.is-rotating .screen-content{opacity:0;pointer-events:none;transition:opacity .12s ease}
