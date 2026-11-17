@@ -489,12 +489,13 @@ function layoutLight() {
 function layoutLightVertical({ box, dialBox, pvBox, itemSize }) {
   const cx = dialBox.left + dialBox.width / 2;
   const start = { x: cx, y: dialBox.top + dialBox.height + itemSize * 0.55 };
-  // スクリーン上端の光が見えている範囲（横は幅の12%〜88%、上端は高さの約22%）。そこから中央付近まで入って溶ける
+  // スクリーン画像は90度回して縦長にしてある。元の左端（細い側：幅の6%、縦は29%〜75%）が上端に来るので、
+  // 上端の横 25%〜71%、高さ 6% の位置に分光の幅を合わせ、そこから高さ32%あたりまで入って溶ける
   const far = {
-    near: pvBox.top + pvBox.height * 0.22,
-    end: pvBox.top + pvBox.height * 0.52,
-    left: pvBox.left + pvBox.width * 0.12,
-    right: pvBox.left + pvBox.width * 0.88,
+    near: pvBox.top + pvBox.height * 0.06,
+    end: pvBox.top + pvBox.height * 0.32,
+    left: pvBox.left + pvBox.width * 0.25,
+    right: pvBox.left + pvBox.width * 0.71,
   };
   const pw = prism.offsetWidth;
   const ph = prism.offsetHeight;
