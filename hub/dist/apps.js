@@ -412,8 +412,14 @@ function layoutLight() {
   lightSvg.setAttribute('width', box.width);
   lightSvg.setAttribute('height', box.height);
 
-  // 光の出発点：円盤の選択位置（右端、水平方向）にある記号のすぐ右
   const itemSize = buttons[0].offsetWidth || 47;
+  // スマホ幅は全体を90度回した縦の構図：円盤は画面上、選択位置は円盤の下端。光は下へ進み、プリズムで分かれてスクリーンの上端へ入る
+  if (window.matchMedia('(max-width: 700px)').matches) {
+    layoutLightVertical({ box, dialBox, pvBox, itemSize });
+    return;
+  }
+
+  // 光の出発点：円盤の選択位置（右端、水平方向）にある記号のすぐ右
   const start = { x: dialBox.left + dialBox.width * (0.5 + DIAL_RADIUS) + itemSize * 0.55, y: dialBox.top + dialBox.height / 2 };
 
   // 分光の行き先：光のスクリーンの左端。分光はスクリーンの左端の縦幅いっぱいに広がり、スクリーンの中へ溶け込む。
@@ -472,6 +478,66 @@ function layoutLight() {
     gradient.setAttribute('y1', 0);
     gradient.setAttribute('y2', 0);
     // ぼかしがはみ出す分まで覆い、マスクの端で光が切れないようにする
+    rect.setAttribute('x', -box.width);
+    rect.setAttribute('y', -box.height);
+    rect.setAttribute('width', box.width * 3);
+    rect.setAttribute('height', box.height * 3);
+  }
+}
+
+// スマホ幅（縦の構図）の光の配置。プリズムは CSS で 90° 回してあるので、入口・出口の位置も同じだけ回して求める
+function layoutLightVertical({ box, dialBox, pvBox, itemSize }) {
+  const cx = dialBox.left + dialBox.width / 2;
+  const start = { x: cx, y: dialBox.top + dialBox.height + itemSize * 0.55 };
+  // スクリーン上端の光が見えている範囲（横は幅の12%〜88%、上端は高さの約22%）。そこから中央付近まで入って溶ける
+  const far = {
+    near: pvBox.top + pvBox.height * 0.22,
+    end: pvBox.top + pvBox.height * 0.52,
+    left: pvBox.left + pvBox.width * 0.12,
+    right: pvBox.left + pvBox.width * 0.88,
+  };
+  const pw = prism.offsetWidth;
+  const ph = prism.offsetHeight;
+  // 画像上の位置を中心からのずれにして 90° 回す：(dx, dy) → (-dy, dx)
+  const turn = point => ({ x: -(point.y - 0.5) * ph, y: (point.x - 0.5) * pw });
+  const entryOff = turn(PRISM_ENTRY);
+  const exitOff = turn(PRISM_EXIT);
+  const entryY = start.y + (far.near - start.y) * 0.38;
+  const center = { x: cx - entryOff.x, y: entryY - entryOff.y };
+  prism.style.left = `${center.x - pw / 2}px`;
+  prism.style.top = `${center.y - ph / 2}px`;
+  const exit = { x: center.x + exitOff.x, y: center.y + exitOff.y };
+
+  for (const line of [rayGlow, rayCore]) {
+    line.setAttribute('x1', cx);
+    line.setAttribute('y1', start.y);
+    line.setAttribute('x2', cx);
+    line.setAttribute('y2', entryY);
+  }
+  exitGlow.setAttribute('cx', exit.x);
+  exitGlow.setAttribute('cy', exit.y);
+
+  const n = BANDS.length;
+  const span = far.right - far.left;
+  const origin = 3;
+  BANDS.forEach((_, i) => {
+    const x0 = exit.x + (i - n / 2) * origin;
+    const x1 = x0 + origin;
+    const tx0 = far.left + span * i / n;
+    const tx1 = far.left + span * (i + 1) / n;
+    beamBands[i].setAttribute('points', `${x0},${exit.y - 6} ${tx0},${far.near} ${tx0},${far.end} ${tx1},${far.end} ${tx1},${far.near} ${x1},${exit.y - 6}`);
+    const pad = span * 0.03;
+    softBands[i].setAttribute('points', `${x0 - 4},${exit.y - 10} ${tx0 - pad},${far.near} ${tx0 - pad},${far.end} ${tx1 + pad},${far.end} ${tx1 + pad},${far.near} ${x1 + 4},${exit.y - 10}`);
+  });
+
+  const s = Math.min(0.95, Math.max(0.3, (far.near - exit.y) / (far.end - exit.y)));
+  setStops(fadeBeam, [['0', 1], [String(s * 0.7), 0.85], [String(s), 0.55], ['1', 0]]);
+  setStops(fadeSoft, [['0', 0.8], [String(s), 0.95], ['1', 0]]);
+  for (const [gradient, rect] of [[fadeBeam, beamMaskRect], [fadeSoft, softMaskRect]]) {
+    gradient.setAttribute('x1', 0);
+    gradient.setAttribute('x2', 0);
+    gradient.setAttribute('y1', exit.y);
+    gradient.setAttribute('y2', far.end);
     rect.setAttribute('x', -box.width);
     rect.setAttribute('y', -box.height);
     rect.setAttribute('width', box.width * 3);
