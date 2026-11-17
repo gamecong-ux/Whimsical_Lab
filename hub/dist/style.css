@@ -47,6 +47,8 @@ footer{position:relative;z-index:4;display:flex;align-items:center;justify-conte
 /* 回転中は選択中のアイコンも縁の外に置いたまま（点も表示）。円盤が中心で止まってから縁の上へ移る */
 .stage.is-rotating .dial-item.is-selected{--r:.54}
 .stage.is-rotating .dial-dot.is-selected{opacity:.8}
-/* スクリーンに映す作品の画面：スクリーンの遠近に合わせて右側を手前に傾け、ふちをぼかして光に溶け込ませる */
-.screen-shot{position:absolute;left:33%;top:25%;width:40%;height:auto;transform:perspective(1000px) rotateY(-12deg);transform-origin:0 50%;opacity:.88;border-radius:8px;mask-image:linear-gradient(90deg,transparent 0%,#000 12%,#000 88%,transparent 100%),linear-gradient(180deg,transparent 0%,#000 14%,#000 86%,transparent 100%);mask-composite:intersect;-webkit-mask-composite:source-in;box-shadow:0 0 40px 10px #ffffff40}
+/* スクリーンに置く作品の画面：白い余白のあるチェキ（インスタント写真）のように、下の余白を広めにとって少し傾ける */
+.screen-shot{position:absolute;z-index:2;left:33%;top:21%;width:38%;height:auto;box-sizing:border-box;padding:2.2% 2.2% 7.5%;background:#fbfaf8;border-radius:3px;transform:rotate(-3deg);transform-origin:50% 50%;box-shadow:0 2px 3px #0000002e,0 14px 30px #00000038,0 0 0 1px #0000000d}
 .screen-shot[hidden]{display:none}
+/* チェキはスクリーンのゆらぎ・ぼかしの外に置き、スクリーンと同じタイミングで消える・現れる */
+.screen-shot{transition:opacity 0s .2s}.stage.is-rotating .screen-shot{opacity:0;transition:opacity .2s ease .06s}
