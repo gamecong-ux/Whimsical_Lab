@@ -135,7 +135,12 @@ const isDemo = () => store?.kind === 'demo';
 
 function init() {
   document.title = CONFIG.appName;
-  startDemo();
+  // 1時間以内にログインしていれば、そのままログインした状態で開く
+  const saved = CONFIG.googleClientId && GoogleAuth.restore(CONFIG.googleClientId);
+  if (!saved) { startDemo(); return; }
+  auth = saved;
+  store = new DriveStore(auth);
+  startApp({ restoring: true });
 }
 
 function startDemo() {
@@ -172,6 +177,7 @@ async function login() {
 }
 
 function resetState() {
+  closeViewer();
   clearTimeout(saveTimer);
   state.records = [];
   state.orphans = [];
@@ -189,7 +195,7 @@ function resetState() {
   urlCache.clear();
 }
 
-async function startApp() {
+async function startApp({ restoring = false } = {}) {
   resetState();
   root.replaceChildren(h('div', { class: 'loading' }, h('div', { class: 'spinner' }), '記録を読み込み中…'));
   try {
@@ -205,6 +211,8 @@ async function startApp() {
     renderMain();
     if (state.orphans.length) askDeleteOrphans();
   } catch (e) {
+    // 保存していたログインが使えなかった（取り消し・期限切れなど）：デモで始める
+    if (restoring && e instanceof AuthError) { auth?.signOut(); startDemo(); return; }
     root.replaceChildren(h('div', { class: 'loading' },
       h('p', null, '記録を読み込めませんでした。'),
       h('p', { class: 'muted' }, e.message),
@@ -357,10 +365,10 @@ const inflight = new Map();
 const queue = [];
 let active = 0;
 
-function loadUrl(fileId) {
+function loadUrl(fileId, { first = false } = {}) {
   if (urlCache.has(fileId)) return Promise.resolve(urlCache.get(fileId));
   if (inflight.has(fileId)) return inflight.get(fileId);
-  const p = new Promise((resolve, reject) => { queue.push({ fileId, resolve, reject }); pump(); });
+  const p = new Promise((resolve, reject) => { queue[first ? 'unshift' : 'push']({ fileId, resolve, reject }); pump(); });
   inflight.set(fileId, p);
   p.then(() => inflight.delete(fileId), () => inflight.delete(fileId));
   return p;
@@ -958,6 +966,7 @@ function getTile(rec) {
     window.addEventListener('pointerup', up);
   });
   el.addEventListener('pointerleave', () => setTimeout(release));
+  thumb.addEventListener('click', () => openViewer(rec));
   thumb._load = () => {
     loadUrl(rec.thumbFileId).then((u) => { img.src = u; thumb.classList.remove('loading'); })
       .catch(() => {
@@ -998,6 +1007,78 @@ function updatePendingTile(p) {
         h('button', { class: 'btn small', onclick: () => retryPending(p) }, '再試行'),
         h('button', { class: 'btn small', onclick: () => cancelPending(p) }, '取り消す')));
   }
+}
+
+// ───── 拡大表示 ─────
+// 画面に並んでいる順で前後へ移れるように、表示中の順番を返す
+function displayOrder() {
+  const list = visibleRecords();
+  if (state.view !== VIEW_ALL) return list;
+  return sortedProjects().flatMap((p) => list.filter((r) => r.projectId === p.id));
+}
+
+let viewer = null;
+function openViewer(rec) {
+  closeViewer();
+  const img = h('img', { class: 'viewer-img', alt: '' });
+  const caption = h('div', { class: 'viewer-caption' });
+  const spinner = h('div', { class: 'spinner viewer-spinner' });
+  const prev = h('button', { class: 'viewer-nav prev', 'aria-label': '前の画像', title: '前の画像（←）', onclick: (e) => { e.stopPropagation(); step(-1); } }, '‹');
+  const next = h('button', { class: 'viewer-nav next', 'aria-label': '次の画像', title: '次の画像（→）', onclick: (e) => { e.stopPropagation(); step(1); } }, '›');
+  const el = h('div', { class: 'viewer', role: 'dialog', 'aria-modal': 'true', 'aria-label': '画像の拡大表示', onclick: closeViewer },
+    h('button', { class: 'viewer-close', 'aria-label': '閉じる', title: '閉じる（Esc）', onclick: closeViewer }, '×'),
+    prev, next,
+    h('div', { class: 'viewer-stage' }, img, spinner),
+    caption);
+  img.addEventListener('click', (e) => e.stopPropagation());
+  caption.addEventListener('click', (e) => e.stopPropagation());
+
+  let cur = rec;
+  const show = (r) => {
+    cur = r;
+    const order = displayOrder();
+    const i = order.findIndex((x) => x.id === r.id);
+    prev.hidden = i <= 0;
+    next.hidden = i < 0 || i >= order.length - 1;
+    const project = projectById(r.projectId)?.name || '';
+    caption.replaceChildren(
+      h('span', { class: 'viewer-name' }, r.fileName),
+      project && h('span', { class: 'muted' }, project),
+      ...RATINGS.map(({ key, name }) => h('span', { class: 'viewer-score' }, `${name} ${fmt(r.ratings[key])}`)),
+      i >= 0 && h('span', { class: 'muted' }, `${i + 1} / ${order.length}`));
+    // まず縮小画像を出し、元画像が届いたら差し替える
+    img.removeAttribute('src');
+    spinner.hidden = false;
+    const thumbUrl = urlCache.get(r.thumbFileId);
+    if (thumbUrl) img.src = thumbUrl;
+    loadUrl(r.imageFileId, { first: true })
+      .then((u) => { if (cur === r) { img.src = u; spinner.hidden = true; } })
+      .catch(() => { if (cur === r) { spinner.hidden = true; toast('元の画像を読み込めませんでした', 'error'); } });
+  };
+  const step = (d) => {
+    const order = displayOrder();
+    const i = order.findIndex((x) => x.id === cur.id);
+    const n = order[i + d];
+    if (n) show(n);
+  };
+  const onKey = (e) => {
+    if (e.key === 'Escape') { e.preventDefault(); closeViewer(); } else if (e.key === 'ArrowLeft') { e.preventDefault(); step(-1); } else if (e.key === 'ArrowRight') { e.preventDefault(); step(1); }
+  };
+  const before = document.activeElement;
+  document.addEventListener('keydown', onKey, true);
+  document.body.append(el);
+  document.body.classList.add('viewer-open');
+  el.querySelector('.viewer-close').focus();
+  viewer = { el, onKey, before };
+  show(rec);
+}
+function closeViewer() {
+  if (!viewer) return;
+  document.removeEventListener('keydown', viewer.onKey, true);
+  viewer.el.remove();
+  document.body.classList.remove('viewer-open');
+  viewer.before?.focus?.({ preventScroll: true });
+  viewer = null;
 }
 
 // 石積み（各列の高さが揃うように並べる）

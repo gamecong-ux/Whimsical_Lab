@@ -22,6 +22,7 @@ export class AuthError extends Error {
   }
 }
 
+const SESSION_KEY = 'session';
 function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function lsSet(k, v) {
   try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch { /* ignore */ }
@@ -48,6 +49,29 @@ export class GoogleAuth {
 
   get valid() { return !!this.token && Date.now() < this.expiresAt - 60_000; }
 
+  // 再読み込みしてもログインを保つため、有効期限（約1時間）内のトークンをブラウザーに保存する
+  static restore(clientId) {
+    try {
+      const s = JSON.parse(lsGet(SESSION_KEY) || 'null');
+      if (!s?.token || !s.user?.email) return null;
+      const a = new GoogleAuth(clientId);
+      Object.assign(a, { token: s.token, expiresAt: Number(s.expiresAt) || 0, user: s.user });
+      if (!a.valid) { lsSet(SESSION_KEY, null); return null; }
+      return a;
+    } catch { lsSet(SESSION_KEY, null); return null; }
+  }
+
+  saveSession() {
+    if (!this.token || !this.user) return;
+    const { email, name, picture } = this.user;
+    lsSet(SESSION_KEY, JSON.stringify({ token: this.token, expiresAt: this.expiresAt, user: { email, name, picture } }));
+  }
+
+  dropToken() {
+    this.token = null;
+    lsSet(SESSION_KEY, null);
+  }
+
   async requestToken(prompt) {
     await waitForGis();
     return new Promise((resolve, reject) => {
@@ -61,6 +85,7 @@ export class GoogleAuth {
           }
           this.token = resp.access_token;
           this.expiresAt = Date.now() + (Number(resp.expires_in) || 3600) * 1000;
+          this.saveSession();
           resolve();
         },
         error_callback: (err) => {
@@ -92,6 +117,7 @@ export class GoogleAuth {
     if (!r.ok) throw new AuthError('userinfo', 'アカウント情報を取得できませんでした');
     this.user = await r.json();
     lsSet('loginHint', this.user.email);
+    this.saveSession();
   }
 
   signOut() {
@@ -99,6 +125,7 @@ export class GoogleAuth {
     this.expiresAt = 0;
     this.user = null;
     lsSet('loginHint', null);
+    lsSet(SESSION_KEY, null);
   }
 }
 
@@ -118,7 +145,7 @@ export class DriveStore {
       throw new Error('通信できませんでした。ネットワーク接続を確認してください。');
     }
     if (res.status === 401) {
-      this.auth.token = null;
+      this.auth.dropToken();
       throw new AuthError('unauthorized', 'Google ドライブとの接続が切れました。再接続してください。');
     }
     if (!res.ok) {

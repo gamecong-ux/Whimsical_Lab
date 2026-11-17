@@ -329,3 +329,35 @@ dialog.confirm input[type="text"] { margin: 4px 0 0; }
 .brand-icon { width: 26px; height: 26px; }
 .app-foot { padding: 0 20px 24px; font-size: 12px; color: var(--muted); }
 .app-foot a { color: inherit; }
+
+/* ───── 拡大表示 ───── */
+.tile .thumb { cursor: zoom-in; }
+body.viewer-open { overflow: hidden; }
+.viewer {
+  position: fixed; inset: 0; z-index: 150; background: rgb(12 12 12 / 0.92);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 64px 16px; cursor: zoom-out;
+}
+.viewer-stage { position: relative; flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+.viewer-img { max-width: 100%; max-height: 100%; object-fit: contain; cursor: default; box-shadow: 0 10px 40px rgb(0 0 0 / 0.5); }
+.viewer-spinner { position: absolute; right: 8px; bottom: 8px; }
+.viewer-caption {
+  margin-top: 12px; display: flex; flex-wrap: wrap; gap: 6px 16px; justify-content: center; align-items: baseline;
+  color: #e9e9e6; font-size: 13px; cursor: default; max-width: 100%;
+}
+.viewer-caption .muted { color: #9b9b97; }
+.viewer-name { font-weight: 600; overflow-wrap: anywhere; }
+.viewer-score { font-variant-numeric: tabular-nums; }
+.viewer-close, .viewer-nav {
+  position: absolute; border: 0; background: rgb(255 255 255 / 0.1); color: #fff; cursor: pointer; border-radius: 999px;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+}
+.viewer-close:hover, .viewer-nav:hover { background: rgb(255 255 255 / 0.22); }
+.viewer-close { top: 10px; right: 12px; width: 38px; height: 38px; font-size: 22px; }
+.viewer-nav { top: 50%; transform: translateY(-50%); width: 44px; height: 64px; font-size: 34px; border-radius: 10px; }
+.viewer-nav.prev { left: 10px; }
+.viewer-nav.next { right: 10px; }
+.viewer-nav[hidden] { display: none; }
+@media (max-width: 640px) {
+  .viewer { padding: 48px 8px 12px; }
+  .viewer-nav { width: 36px; height: 52px; font-size: 28px; }
+}
