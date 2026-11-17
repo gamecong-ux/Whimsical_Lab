@@ -98,6 +98,13 @@ textarea { resize: vertical; line-height: 1.6; }
 .brand { font-weight: 700; font-size: 16px; letter-spacing: 0.04em; margin-right: 6px; display: flex; align-items: center; gap: 8px; }
 .demo-badge { font-size: 11px; font-weight: 500; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--warn); color: var(--warn); }
 .topbar .sort { width: auto; }
+.sort-group { display: inline-flex; align-items: center; gap: 4px; }
+.sort-dir {
+  display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 10px 0 7px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; white-space: nowrap;
+}
+.sort-dir:hover { border-color: var(--muted); }
+.sort-dir svg { flex: none; }
 .filter-wrap { position: relative; }
 .btn .badge:empty { display: none; }
 .btn .badge { background: var(--accent); color: var(--accent-text); border-radius: 99px; font-size: 11px; min-width: 18px; height: 18px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; }
@@ -163,6 +170,12 @@ textarea { resize: vertical; line-height: 1.6; }
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
 }
 .tile:hover, .tile:focus-within, .tile.dragging { z-index: 5; }
+/* 並べ直しで移動したタイルを一瞬光らせる */
+.tile.moved { animation: tile-moved 1.4s ease-out; }
+@keyframes tile-moved {
+  0%, 35% { box-shadow: 0 0 0 3px var(--accent, #d0130f); }
+  100% { box-shadow: 0 0 0 3px transparent; }
+}
 .thumb {
   background: var(--thumb-bg); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
   border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;

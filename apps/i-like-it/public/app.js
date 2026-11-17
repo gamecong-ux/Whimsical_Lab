@@ -15,12 +15,16 @@ const fmt = (v) => v.toFixed(2);
 const labelOf = (v) => SCORE_LABELS[Math.round(v)] ?? '';
 const round2 = (v) => Math.round(v * 100) / 100;
 const ACCEPT = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif', 'image/webp': 'webp', 'image/avif': 'avif' };
-const SORTS = [
-  ['created-desc', '登録日が新しい順'],
-  ['created-asc', '登録日が古い順'],
-  ['updated-desc', '更新日が新しい順'],
-  ...RATINGS.flatMap((r) => [[`${r.key}-desc`, `${r.name}が高い順`], [`${r.key}-asc`, `${r.name}が低い順`]]),
+// 並べ替えの項目（向きは ↓ / ↑ のボタンで選ぶ）
+const SORT_FIELDS = [
+  ['created', '登録日'],
+  ['updated', '更新日'],
+  ...RATINGS.map((r) => [r.key, r.name]),
 ];
+const isDateField = (f) => f === 'created' || f === 'updated';
+const dirTitle = (field, dir) => (isDateField(field)
+  ? (dir === 'desc' ? '新しい順' : '古い順')
+  : (dir === 'desc' ? '高い順' : '低い順'));
 const THUMB_MAX = 800;
 
 // ───────── 状態 ─────────
@@ -510,11 +514,49 @@ let accountEl;
 let projectBarEl;
 let docListenerSet = false;
 
+// 並べ替えの向きアイコン：矢印と、長さが変わる3本の棒（↓は上から長い→短い、↑は短い→長い）
+function sortIcon(dir) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 20 20');
+  svg.setAttribute('width', '18');
+  svg.setAttribute('height', '18');
+  svg.setAttribute('aria-hidden', 'true');
+  const lens = dir === 'desc' ? [9, 6.5, 4] : [4, 6.5, 9];
+  const arrow = dir === 'desc' ? 'M5 3v13M1.8 12.8 5 16l3.2-3.2' : 'M5 17V4M1.8 7.2 5 4l3.2 3.2';
+  const parts = [`<path d="${arrow}"/>`, ...lens.map((l, i) => `<path d="M10.5 ${5 + i * 5}h${l}"/>`)];
+  svg.innerHTML = `<g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${parts.join('')}</g>`;
+  return svg;
+}
+
+function paintSortDir(btn) {
+  const [field, dir] = state.sort.split('-');
+  const label = dirTitle(field, dir);
+  btn.replaceChildren(sortIcon(dir), h('span', null, label));
+  btn.title = `${label}（クリックで${dirTitle(field, dir === 'desc' ? 'asc' : 'desc')}に切り替え）`;
+  btn.setAttribute('aria-label', `並べ替えの向き：${label}`);
+}
+
+function setSort(field, dir) {
+  state.sort = `${field}-${dir}`;
+  const btn = document.querySelector('.sort-dir');
+  if (btn) paintSortDir(btn);
+  renderGrid();
+}
+
 function renderMain() {
-  const sort = h('select', {
-    class: 'sort', 'aria-label': '並べ替え',
-    onchange: (e) => { state.sort = e.target.value; renderGrid(); },
-  }, SORTS.map(([v, l]) => h('option', { value: v, selected: v === state.sort }, l)));
+  const sortField = state.sort.split('-')[0];
+  const dirBtn = h('button', {
+    type: 'button', class: 'sort-dir',
+    onclick: () => { const [f, d] = state.sort.split('-'); setSort(f, d === 'desc' ? 'asc' : 'desc'); },
+  });
+  paintSortDir(dirBtn);
+  const sort = h('div', { class: 'sort-group', role: 'group', 'aria-label': '並べ替え' },
+    h('select', {
+      class: 'sort', 'aria-label': '並べ替える項目',
+      onchange: (e) => setSort(e.target.value, state.sort.split('-')[1]),
+    }, SORT_FIELDS.map(([v, l]) => h('option', { value: v, selected: v === sortField }, l))),
+    dirBtn);
 
   filterBtnEl = h('button', { class: 'btn', 'aria-expanded': 'false', onclick: toggleFilterPanel }, '絞り込み', h('span', { class: 'badge' }));
   filterPanelEl = h('div', { class: 'filter-panel', hidden: true });
@@ -897,7 +939,13 @@ function getTile(rec) {
   const scores = h('div', { class: 'scores' });
   const paintScores = () => scores.replaceChildren(...RATINGS.map(({ key, name }) => h('span', { class: 'score' },
     h('span', { class: 'score-name' }, name), h('span', { class: 'score-val' }, fmt(rec.ratings[key])))));
-  const sliders = RATINGS.map((r) => ratingSlider(rec, r, () => { touch(rec); paintScores(); }));
+  // 評価を変えたら、最後の操作から2.5秒たったところで並べ直す
+  const sliders = RATINGS.map((r) => ratingSlider(rec, r, () => { touch(rec); paintScores(); requestResort(rec.id); }));
+  // マウスで操作した後はスライダーにフォーカスが残るので、離れたら外す（開いたままにしない）
+  const release = () => {
+    if (el.classList.contains('dragging') || el.matches(':hover')) return;
+    if (el.contains(document.activeElement)) document.activeElement.blur();
+  };
   const del = h('button', { class: 'tile-delete', title: '削除', 'aria-label': `${rec.fileName} を削除`, onclick: () => deleteRecord(rec) }, '×');
   const el = h('div', { class: 'tile', tabindex: '-1' },
     thumb, del,
@@ -906,9 +954,10 @@ function getTile(rec) {
   el.addEventListener('pointerdown', (e) => {
     if (e.target.type !== 'range') return;
     el.classList.add('dragging');
-    const up = () => { el.classList.remove('dragging'); window.removeEventListener('pointerup', up); };
+    const up = () => { el.classList.remove('dragging'); window.removeEventListener('pointerup', up); release(); };
     window.addEventListener('pointerup', up);
   });
+  el.addEventListener('pointerleave', () => setTimeout(release));
   thumb._load = () => {
     loadUrl(rec.thumbFileId).then((u) => { img.src = u; thumb.classList.remove('loading'); })
       .catch(() => {
@@ -1018,6 +1067,43 @@ function renderGrid() {
       h('p', null, `「${viewName()}」に追加されます。`),
       h('p', { class: 'muted' }, 'または、クリックしてファイルを選択／画像をコピーして Ctrl+V で貼り付け'),
       h('p', { class: 'muted small' }, `JPEG / PNG / GIF / WebP / AVIF、1枚 ${CONFIG.maxFileSizeMB}MB まで。複数枚まとめて追加できます。`)));
+}
+
+// 評価の操作が2.5秒止まったら並べ直す。画像は元の位置から新しい位置へ滑らかに動かす
+const RESORT_DELAY = 2500;
+let resortTimer;
+const resortIds = new Set();
+function requestResort(id) {
+  resortIds.add(id);
+  clearTimeout(resortTimer);
+  resortTimer = setTimeout(resortNow, RESORT_DELAY);
+}
+function resortNow() {
+  const ids = [...resortIds];
+  resortIds.clear();
+  // スライダーをつまんだままなら、離すまで待つ
+  if (document.querySelector('.tile.dragging')) { ids.forEach((id) => resortIds.add(id)); resortTimer = setTimeout(resortNow, 400); return; }
+  const before = new Map();
+  for (const [id, t] of tiles) if (t.el.isConnected) before.set(id, t.el.getBoundingClientRect());
+  renderGrid();
+  renderResultBar();
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  for (const [id, t] of tiles) {
+    const a = before.get(id);
+    if (!a || !t.el.isConnected) continue;
+    const b = t.el.getBoundingClientRect();
+    const dx = a.left - b.left; const dy = a.top - b.top;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+    if (ids.includes(id)) {
+      t.el.classList.remove('moved');
+      void t.el.offsetWidth;
+      t.el.classList.add('moved');
+      setTimeout(() => t.el.classList.remove('moved'), 1400);
+    }
+    if (reduce) continue;
+    t.el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }],
+      { duration: 420, easing: 'cubic-bezier(.2,.7,.2,1)' });
+  }
 }
 
 let resizeTimer;
