@@ -19,7 +19,7 @@ button,a{-webkit-tap-highlight-color:transparent}a{color:inherit}
 .screen-content{position:absolute;z-index:6;left:12%;right:69%;bottom:24%;display:flex;flex-direction:column;align-items:flex-start;gap:16px;color:#2b2430}.screen-content p{font-size:13px;line-height:1.8;color:#3a3140;max-width:360px;margin:0}.open-app{display:flex;align-items:center;gap:22px;white-space:nowrap;padding:0 0 8px;border-bottom:1px solid currentColor;color:#2b2430;text-decoration:none;font-family:Georgia,"Noto Serif JP",serif;font-size:16px;letter-spacing:.12em}.open-app:hover{color:color-mix(in srgb,var(--accent),#000 45%)}.open-app[hidden]{display:none}.screen-content :focus-visible{outline-color:#2b2430}
 footer{position:relative;z-index:4;display:flex;align-items:center;justify-content:space-between;gap:15px;color:#aaa4af;font-size:9px}
 :focus-visible{outline:2px solid #fff;outline-offset:5px}
-@media(max-width:700px){body{height:auto;overflow:auto;background:#151419}.viewport{position:static;display:block}.home{--edge:20px;position:static;width:auto;height:auto;min-height:100svh;padding:23px var(--edge) 31px;transform:none}.stage{min-height:850px}.site-header{gap:14px}.brand{font-size:18px;letter-spacing:.07em}.header-counter{padding-left:13px;font-size:8px}.edition{display:none}.stage{min-height:850px}.dial-area{width:630px;height:630px;left:-480px;top:calc(76% - 315px)}.dial-item{width:42px;height:42px}.prism{width:110px}.detail{left:0;top:7%;height:66%;min-height:0}.detail h1{font-size:30px;white-space:normal;margin:12px 0 17px}.screen{margin:0 -10px 0 0}.screen-content{left:10%;right:30%;bottom:16%;gap:10px}.screen-content p{font-size:11px}.open-app{font-size:12px;gap:8px;align-self:flex-end}footer{font-size:8px}}
+@media(max-width:700px){body{height:auto;overflow:auto;background:#151419}.viewport{position:static;display:block}.home{--edge:20px;position:static;width:auto;height:auto;min-height:100svh;padding:23px var(--edge) 31px;transform:none}.stage{min-height:850px}.site-header{gap:14px}.brand{font-size:18px;letter-spacing:.07em}.header-counter{padding-left:13px;font-size:8px}.edition{display:none}.stage{min-height:780px}.dial-area{width:560px;height:560px;left:calc(50% - 280px);top:calc(100% - 150px);rotate:-90deg;z-index:6}.dial-item{width:38px;height:38px;transform:translate(-50%,-50%) rotate(calc(var(--counter-rotation,0deg) + 90deg))}.prism{width:84px;rotate:-90deg}.detail{left:0;right:0;top:0;bottom:auto;height:auto;min-height:0}.detail h1{font-size:28px;white-space:normal;margin:0}.screen{margin:0 -20px 14px}.screen-content{left:10%;right:30%;bottom:16%;gap:10px}.screen-content p{font-size:11px}.open-app{font-size:12px;gap:8px;align-self:flex-end}footer{font-size:8px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:0s!important}}
 /* 光の出方：回転中は「内容 → スクリーン → 分光・光線」の順にすばやく消える。
    止まると、光線が円盤からプリズムへ伸び（0〜0.2秒）、届いた瞬間（0.2秒）に分光とスクリーンがそのまま表示され、内容が現れる（0.85〜1.15秒） */
@@ -81,3 +81,16 @@ footer{position:relative;z-index:4;display:flex;align-items:center;justify-conte
 /* 見出しの左のアプリアイコン。ノイズ（.stage-grain、z-index:5）より奥に置き、粒子がかかるようにする */
 .title-row{display:flex;align-items:center;gap:22px;margin:22px 0 32px}.title-row h1{margin:0}.work-icon{position:relative;z-index:4;width:62px;height:62px;flex:none;border-radius:14px;box-shadow:0 0 22px #f3b4c733}.work-icon[hidden]{display:none}
 @media(max-width:700px){.title-row{gap:12px;margin:12px 0 17px}.work-icon{width:40px;height:40px;border-radius:9px}}
+/* スマホ：スクリーン内は写真を上、説明と「アプリを開く」を下に分けて重ならないようにする */
+@media(max-width:700px){.screen-shot{left:24%;top:20%;width:54%}.screen-content{left:12%;right:12%;bottom:12%;gap:8px}.screen-content p{font-size:10px}.open-app{align-self:flex-start}}
+/* スマホ：ヘッダーは中央。スクリーンの画像は出さず、分光が写真に直接当たる。説明文と「アプリを開く」は白い文字で写真の下に置く */
+@media(max-width:700px){
+.site-header{justify-content:center;flex-direction:column;gap:6px;text-align:center}.header-counter{border-left:0;padding-left:0}
+.stage{min-height:740px}
+.screen{aspect-ratio:auto;display:flex;flex-direction:column;gap:16px;margin:0 0 18px}
+.screen-light{display:none}
+.shot-warp{position:relative;inset:auto}
+.screen-shot{position:relative;left:auto;top:auto;width:100%}
+.screen-content{position:static;order:-1;color:#f3eff2}.screen-content p{color:#d9d3dc;font-size:11px}
+.open-app{color:#f3eff2;align-self:flex-start}.open-app:hover{color:var(--accent)}
+}
