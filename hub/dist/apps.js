@@ -415,7 +415,8 @@ function layoutLight() {
   const itemSize = buttons[0].offsetWidth || 47;
   // スマホ幅は全体を90度回した縦の構図：円盤は画面上、選択位置は円盤の下端。光は下へ進み、プリズムで分かれてスクリーンの上端へ入る
   if (window.matchMedia('(max-width: 700px)').matches) {
-    layoutLightVertical({ box, dialBox, pvBox, itemSize });
+    const shotBox = screenShotLink.hidden ? null : rel(screenShotLink.getBoundingClientRect());
+    layoutLightVertical({ box, dialBox, pvBox: shotBox || pvBox, itemSize, toPhoto: !!shotBox });
     return;
   }
 
@@ -486,17 +487,15 @@ function layoutLight() {
 }
 
 // スマホ幅（縦の構図）の光の配置。プリズムは CSS で 90° 回してあるので、入口・出口の位置も同じだけ回して求める
-function layoutLightVertical({ box, dialBox, pvBox, itemSize }) {
+function layoutLightVertical({ box, dialBox, pvBox, itemSize, toPhoto }) {
   const cx = dialBox.left + dialBox.width / 2;
   const start = { x: cx, y: dialBox.top + dialBox.height + itemSize * 0.55 };
   // スクリーン画像は90度回して縦長にしてある。元の左端（細い側：幅の6%、縦は29%〜75%）が上端に来るので、
   // 上端の横 25%〜71%、高さ 6% の位置に分光の幅を合わせ、そこから高さ32%あたりまで入って溶ける
-  const far = {
-    near: pvBox.top + pvBox.height * 0.06,
-    end: pvBox.top + pvBox.height * 0.32,
-    left: pvBox.left + pvBox.width * 0.25,
-    right: pvBox.left + pvBox.width * 0.71,
-  };
+  // スマホではスクリーン画像を出さず、分光を写真の上端（横幅いっぱい）に当てて、写真の上部へ溶け込ませる
+  const far = toPhoto
+    ? { near: pvBox.top + 4, end: pvBox.top + pvBox.height * 0.45, left: pvBox.left + pvBox.width * 0.04, right: pvBox.left + pvBox.width * 0.96 }
+    : { near: pvBox.top + pvBox.height * 0.06, end: pvBox.top + pvBox.height * 0.32, left: pvBox.left + pvBox.width * 0.25, right: pvBox.left + pvBox.width * 0.71 };
   const pw = prism.offsetWidth;
   const ph = prism.offsetHeight;
   // 画像上の位置を中心からのずれにして 90° 回す：(dx, dy) → (-dy, dx)
