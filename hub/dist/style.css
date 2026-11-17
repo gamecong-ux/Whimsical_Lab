@@ -48,7 +48,7 @@ footer{position:relative;z-index:4;display:flex;align-items:center;justify-conte
 .stage.is-rotating .dial-item.is-selected{--r:.54}
 .stage.is-rotating .dial-dot.is-selected{opacity:.8}
 /* スクリーンに置く作品の画面：白い余白のあるチェキ（インスタント写真）のように、下の余白を広めにとって少し傾ける */
-.screen-shot{position:absolute;z-index:2;left:33%;top:22%;width:38%;display:block;padding:.9% .9% 3%;background:#fbfaf88c;border-radius:9px;transform:rotate(-3deg);transform-origin:50% 50%;box-shadow:inset 0 0 0 1px #ffffff59;text-decoration:none}.screen-shot img{display:block;width:100%;height:auto;border-radius:5px;filter:url(#rgb-shift)}.screen-shot[href]{cursor:pointer;transition:transform .3s ease,opacity 0s .2s}.screen-shot[href]:hover{transform:rotate(-2deg) translateY(-6px) scale(1.02)}.screen-shot:focus-visible{outline:2px solid #fff;outline-offset:6px}
+.screen-shot{position:absolute;z-index:2;left:33%;top:22%;width:38%;display:block;padding:.9% .9% 3%;background:#fbfaf84d;-webkit-backdrop-filter:blur(14px) saturate(1.25) brightness(1.08);backdrop-filter:blur(14px) saturate(1.25) brightness(1.08);border-radius:9px;transform:rotate(-3deg);transform-origin:50% 50%;box-shadow:inset 0 0 0 1px #ffffff40,0 0 18px 4px #ffffff33,0 0 46px 14px #ffffff1f;text-decoration:none}.screen-shot img{display:block;width:100%;height:auto;border-radius:5px;filter:url(#rgb-shift)}.screen-shot[href]{cursor:pointer;transition:transform .3s ease,opacity 0s .2s}.screen-shot[href]:hover{transform:rotate(-2deg) translateY(-6px) scale(1.02)}.screen-shot:focus-visible{outline:2px solid #fff;outline-offset:6px}
 
 /* チェキはスクリーンのゆらぎ・ぼかしの外に置き、スクリーンと同じタイミングで消える・現れる */
 .screen-shot{transition:opacity 0s .2s}.stage.is-rotating .screen-shot{opacity:0;pointer-events:none;transition:opacity .2s ease .06s}
