@@ -413,7 +413,7 @@ function layoutLight() {
   lightSvg.setAttribute('height', box.height);
 
   const itemSize = buttons[0].offsetWidth || 47;
-  // スマホ幅は全体を90度回した縦の構図：円盤は画面上、選択位置は円盤の下端。光は下へ進み、プリズムで分かれてスクリーンの上端へ入る
+  // スマホ幅は縦の構図：円盤は画面下（指で回しやすい位置）、選択位置は円盤の上端。光は上へ進み、プリズムで分かれて写真の下端へ入る
   if (window.matchMedia('(max-width: 700px)').matches) {
     const shotBox = screenShotLink.hidden ? null : rel(screenShotLink.getBoundingClientRect());
     layoutLightVertical({ box, dialBox, pvBox: shotBox || pvBox, itemSize, toPhoto: !!shotBox });
@@ -486,23 +486,22 @@ function layoutLight() {
   }
 }
 
-// スマホ幅（縦の構図）の光の配置。プリズムは CSS で 90° 回してあるので、入口・出口の位置も同じだけ回して求める
+// スマホ幅（縦の構図）の光の配置：円盤は下、選択位置は円盤の上端。光は上へ進み、プリズムで分かれて写真の下端へ入る。
+// プリズムは CSS で -90° 回してあるので、入口・出口の位置も同じだけ回して求める
 function layoutLightVertical({ box, dialBox, pvBox, itemSize, toPhoto }) {
   const cx = dialBox.left + dialBox.width / 2;
-  const start = { x: cx, y: dialBox.top + dialBox.height + itemSize * 0.55 };
-  // スクリーン画像は90度回して縦長にしてある。元の左端（細い側：幅の6%、縦は29%〜75%）が上端に来るので、
-  // 上端の横 25%〜71%、高さ 6% の位置に分光の幅を合わせ、そこから高さ32%あたりまで入って溶ける
-  // スマホではスクリーン画像を出さず、分光を写真の上端（横幅いっぱい）に当てて、写真の上部へ溶け込ませる
+  const start = { x: cx, y: dialBox.top - itemSize * 0.55 };
+  // 写真の下端（横幅いっぱい）に当て、写真の下半分へ溶け込ませる。写真がなければスクリーンの下端に当てる
   const far = toPhoto
-    ? { near: pvBox.top + 4, end: pvBox.top + pvBox.height * 0.45, left: pvBox.left + pvBox.width * 0.04, right: pvBox.left + pvBox.width * 0.96 }
-    : { near: pvBox.top + pvBox.height * 0.06, end: pvBox.top + pvBox.height * 0.32, left: pvBox.left + pvBox.width * 0.25, right: pvBox.left + pvBox.width * 0.71 };
+    ? { near: pvBox.top + pvBox.height - 4, end: pvBox.top + pvBox.height * 0.55, left: pvBox.left + pvBox.width * 0.04, right: pvBox.left + pvBox.width * 0.96 }
+    : { near: pvBox.top + pvBox.height * 0.94, end: pvBox.top + pvBox.height * 0.68, left: pvBox.left + pvBox.width * 0.25, right: pvBox.left + pvBox.width * 0.71 };
   const pw = prism.offsetWidth;
   const ph = prism.offsetHeight;
-  // 画像上の位置を中心からのずれにして 90° 回す：(dx, dy) → (-dy, dx)
-  const turn = point => ({ x: -(point.y - 0.5) * ph, y: (point.x - 0.5) * pw });
+  // 画像上の位置を中心からのずれにして -90° 回す：(dx, dy) → (dy, -dx)
+  const turn = point => ({ x: (point.y - 0.5) * ph, y: -(point.x - 0.5) * pw });
   const entryOff = turn(PRISM_ENTRY);
   const exitOff = turn(PRISM_EXIT);
-  const entryY = start.y + (far.near - start.y) * 0.38;
+  const entryY = start.y - (start.y - far.near) * 0.38;
   const center = { x: cx - entryOff.x, y: entryY - entryOff.y };
   prism.style.left = `${center.x - pw / 2}px`;
   prism.style.top = `${center.y - ph / 2}px`;
@@ -525,12 +524,12 @@ function layoutLightVertical({ box, dialBox, pvBox, itemSize, toPhoto }) {
     const x1 = x0 + origin;
     const tx0 = far.left + span * i / n;
     const tx1 = far.left + span * (i + 1) / n;
-    beamBands[i].setAttribute('points', `${x0},${exit.y - 6} ${tx0},${far.near} ${tx0},${far.end} ${tx1},${far.end} ${tx1},${far.near} ${x1},${exit.y - 6}`);
+    beamBands[i].setAttribute('points', `${x0},${exit.y + 6} ${tx0},${far.near} ${tx0},${far.end} ${tx1},${far.end} ${tx1},${far.near} ${x1},${exit.y + 6}`);
     const pad = span * 0.03;
-    softBands[i].setAttribute('points', `${x0 - 4},${exit.y - 10} ${tx0 - pad},${far.near} ${tx0 - pad},${far.end} ${tx1 + pad},${far.end} ${tx1 + pad},${far.near} ${x1 + 4},${exit.y - 10}`);
+    softBands[i].setAttribute('points', `${x0 - 4},${exit.y + 10} ${tx0 - pad},${far.near} ${tx0 - pad},${far.end} ${tx1 + pad},${far.end} ${tx1 + pad},${far.near} ${x1 + 4},${exit.y + 10}`);
   });
 
-  const s = Math.min(0.95, Math.max(0.3, (far.near - exit.y) / (far.end - exit.y)));
+  const s = Math.min(0.95, Math.max(0.3, (exit.y - far.near) / (exit.y - far.end)));
   setStops(fadeBeam, [['0', 1], [String(s * 0.7), 0.85], [String(s), 0.55], ['1', 0]]);
   setStops(fadeSoft, [['0', 0.8], [String(s), 0.95], ['1', 0]]);
   for (const [gradient, rect] of [[fadeBeam, beamMaskRect], [fadeSoft, softMaskRect]]) {
