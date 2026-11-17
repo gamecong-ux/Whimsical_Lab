@@ -364,22 +364,27 @@ function colorLight(accent) {
 }
 
 function layoutLight() {
-  const box = stage.getBoundingClientRect();
-  if (!box.width || !box.height) return;
-  const dialBox = dial.getBoundingClientRect();
-  const pv = preview.getBoundingClientRect();
-  const local = (x, y) => ({ x: x - box.left, y: y - box.top });
+  // 画面全体を拡大縮小して表示しているので、画面上の位置（getBoundingClientRect）を
+  // 縮尺 k で割って、ステージ内の座標（CSS の px）に直してから計算する
+  const rect = stage.getBoundingClientRect();
+  if (!rect.width || !rect.height || !stage.offsetWidth) return;
+  const k = rect.width / stage.offsetWidth;
+  const box = { width: stage.offsetWidth, height: stage.offsetHeight };
+  const rel = r => ({ left: (r.left - rect.left) / k, top: (r.top - rect.top) / k, width: r.width / k, height: r.height / k });
+  const dialBox = rel(dial.getBoundingClientRect());
+  const pvBox = rel(preview.getBoundingClientRect());
+  const pv = { width: pvBox.width, height: pvBox.height };
   lightSvg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
   lightSvg.setAttribute('width', box.width);
   lightSvg.setAttribute('height', box.height);
 
   // 光の出発点：円盤の選択位置（右端、水平方向）にある記号のすぐ右
   const itemSize = buttons[0].offsetWidth || 47;
-  const start = local(dialBox.left + dialBox.width * (0.5 + DIAL_RADIUS) + itemSize * 0.55, dialBox.top + dialBox.height / 2);
+  const start = { x: dialBox.left + dialBox.width * (0.5 + DIAL_RADIUS) + itemSize * 0.55, y: dialBox.top + dialBox.height / 2 };
 
   // 分光の行き先：光のスクリーンの左端。分光はスクリーンの左端の縦幅いっぱいに広がり、スクリーンの中へ溶け込む。
   // スクリーンは右へ向かって手前に回した台形なので、左端の高さは回転前の高さ（offsetHeight）のまま
-  const pvLocal = { left: pv.left - box.left, right: pv.right - box.left, top: pv.top - box.top, bottom: pv.bottom - box.top };
+  const pvLocal = { left: pvBox.left, right: pvBox.left + pvBox.width, top: pvBox.top, bottom: pvBox.top + pvBox.height };
   const towardPreview = pvLocal.left > start.x + 120;
   // screen.webp（端がぼけた画像）の左端：半透明になる位置は幅の約6%、そこでの縦の範囲は高さの 29%〜75%。分光の幅をここに合わせる
   const far = towardPreview
@@ -448,3 +453,21 @@ applyRotation(0);
 layoutLight();
 // 読み込み直後は光が消えた状態（is-rotating）から始め、配置が決まったら光が伸びる演出を見せる
 setTimeout(refreshLight, 250);
+
+// ───────── 画面全体の縮尺 ─────────
+// 横 1920 × 縦 880 の画面として組み、ウィンドウの横幅いっぱいに拡大縮小する。余った上下は黒い帯になる。
+// ウィンドウが極端に横長のときだけ、上下に最低限の帯（高さの7%ずつ）を残せるよう高さ側で合わせる。
+const CANVAS_W = 1920;
+const CANVAS_H = 880;
+const MIN_BAND = 0.07;
+const scaledLayout = window.matchMedia('(min-width: 701px)');
+function fitCanvas() {
+  const scale = scaledLayout.matches
+    ? Math.min(window.innerWidth / CANVAS_W, (window.innerHeight * (1 - MIN_BAND * 2)) / CANVAS_H)
+    : 1;
+  document.documentElement.style.setProperty('--canvas-scale', String(scale));
+  layoutLight();
+}
+window.addEventListener('resize', fitCanvas);
+scaledLayout.addEventListener('change', fitCanvas);
+fitCanvas();
