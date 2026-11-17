@@ -3,19 +3,65 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0c0d10">
-  <meta name="description" content="Whimsical LabのWebアプリを集めたホーム画面。">
+  <meta name="theme-color" content="#08090a">
+  <meta name="description" content="Whimsical Lab — 小さなアイデアから生まれたWebアプリのコレクション。">
   <title>Whimsical Lab</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
   <script src="apps.js" defer></script>
 </head>
 <body>
+  <!-- 光のスクリーンをゆらゆら歪ませるフィルター：ゆっくり変化するノイズで画像を少しずらす -->
+  <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+    <filter id="rgb-shift" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
+      <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
+      <feOffset in="red" dx="-1.5" dy="-1.2" result="redShift"></feOffset>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green"/>
+      <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue"/>
+      <feOffset in="blue" dx="1.5" dy="1.2" result="blueShift"></feOffset>
+      <feBlend in="redShift" in2="green" mode="screen" result="rg"/>
+      <feBlend in="rg" in2="blueShift" mode="screen"/>
+    </filter>
+    <!-- 写真を光の残像のように歪ませるフィルター。歪みの強さ（scale）は apps.js がホバーに合わせて 0 まで下げる -->
+    <filter id="photo-warp" x="-6%" y="-8%" width="112%" height="116%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.008 0.02" numOctaves="2" seed="11" result="noise">
+        <animate attributeName="baseFrequency" dur="9s" values="0.008 0.02;0.012 0.026;0.007 0.017;0.008 0.02" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap id="photo-warp-map" in="SourceGraphic" in2="noise" scale="14" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+    <filter id="screen-wobble" x="-5%" y="-8%" width="110%" height="116%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.004 0.009" numOctaves="2" seed="7" result="noise">
+        <animate attributeName="baseFrequency" dur="14s" values="0.004 0.009;0.006 0.012;0.0045 0.008;0.004 0.009" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="18" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </svg>
+  <div class="viewport">
   <main class="home">
-    <header><a class="brand" href="./" aria-label="Whimsical Lab ホーム"><span class="brand-mark" aria-hidden="true">✳</span> Whimsical Lab</a><span class="edition">APP COLLECTION</span></header>
-    <section class="launcher" aria-label="アプリ一覧"><div id="apps" class="app-grid"></div></section>
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Whimsical Lab ホーム">Whimsical Lab</a>
+      <span id="counter" class="header-counter" aria-live="polite"></span>
+      <span class="edition">A LITTLE LAB, A LOT OF IDEAS.</span>
+    </header>
+    <section class="stage is-rotating" aria-label="作品を選ぶ">
+      <div class="dial-area" aria-label="作品ダイヤル。画面全体のマウスホイールまたは円盤のドラッグで回転">
+        <div class="dial-ring" aria-hidden="true"></div>
+        <div id="dial-items" class="dial-items"></div>
+      </div>
+      <div class="stage-grain" aria-hidden="true"></div>
+      <div class="light-art" aria-hidden="true"><svg id="light" class="light-svg" focusable="false"></svg><span class="prism"></span></div>
+      <article class="detail" aria-labelledby="work-title">
+        <div class="detail-top"><span id="work-kind" class="eyebrow"></span><span id="detail-number" class="detail-number"></span></div>
+        <div class="title-row"><img class="work-icon" id="work-icon" alt="" hidden><h1 id="work-title"></h1></div>
+        <div class="screen" id="preview">
+          <div class="screen-light" aria-hidden="true"></div>
+          <div class="shot-warp"><a class="screen-shot" id="screen-shot-link" hidden><img id="screen-shot" alt=""></a></div>
+          <div class="screen-content"><p id="work-description"></p><a id="open-app" class="open-app" href="#">アプリを開く <span aria-hidden="true">→</span></a></div>
+        </div>
+      </article>
+    </section>
     <footer><span>Whimsical Lab</span><span>MADE WITH CURIOSITY.</span></footer>
   </main>
-  <dialog id="notice" aria-labelledby="notice-title"><form method="dialog"><span class="dialog-icon" aria-hidden="true">✳</span><h2 id="notice-title">ただいま準備中</h2><p>こちらは配置確認用のサンプルです。<br>公開するアプリを、順次追加していきます。</p><button class="close">ホームに戻る</button></form></dialog>
+  </div>
 </body>
 </html>
