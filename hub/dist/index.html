@@ -15,10 +15,10 @@
   <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
     <filter id="rgb-shift" x="-3%" y="-3%" width="106%" height="106%" color-interpolation-filters="sRGB">
       <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
-      <feOffset in="red" dx="-1.5" dy="-1.2" result="redShift"><animate attributeName="dx" dur="4s" values="-1.5;-2.2;-1;-1.5" repeatCount="indefinite"/><animate attributeName="dy" dur="4s" values="-1.2;-1.8;-.8;-1.2" repeatCount="indefinite"/></feOffset>
+      <feOffset in="red" dx="-1.5" dy="-1.2" result="redShift"></feOffset>
       <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green"/>
       <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue"/>
-      <feOffset in="blue" dx="1.5" dy="1.2" result="blueShift"><animate attributeName="dx" dur="4s" values="1.5;2.2;1;1.5" repeatCount="indefinite"/><animate attributeName="dy" dur="4s" values="1.2;1.8;.8;1.2" repeatCount="indefinite"/></feOffset>
+      <feOffset in="blue" dx="1.5" dy="1.2" result="blueShift"></feOffset>
       <feBlend in="redShift" in2="green" mode="screen" result="rg"/>
       <feBlend in="rg" in2="blueShift" mode="screen"/>
     </filter>
