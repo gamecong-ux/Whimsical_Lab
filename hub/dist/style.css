@@ -78,3 +78,6 @@ footer{position:relative;z-index:4;display:flex;align-items:center;justify-conte
 /* ホバーできない端末では最初から実体化、動きを減らす設定では揺れを止める */
 @media(hover:none){.screen-shot{filter:opacity(.85);animation:none}}
 @media(prefers-reduced-motion:reduce){.screen-shot{animation:none}.screen-shot.is-solid img{animation:none}}
+/* 見出しの左のアプリアイコン。ノイズ（.stage-grain、z-index:5）より奥に置き、粒子がかかるようにする */
+.title-row{display:flex;align-items:center;gap:22px;margin:22px 0 32px}.title-row h1{margin:0}.work-icon{position:relative;z-index:4;width:62px;height:62px;flex:none;border-radius:14px;box-shadow:0 0 22px #f3b4c733}.work-icon[hidden]{display:none}
+@media(max-width:700px){.title-row{gap:12px;margin:12px 0 17px}.work-icon{width:40px;height:40px;border-radius:9px}}
