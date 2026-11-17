@@ -1081,17 +1081,27 @@ function closeViewer() {
   viewer = null;
 }
 
-// 石積み（各列の高さが揃うように並べる）
+// 段ごとの石積み：列の数ずつ1段とし、各段を左の列から順に埋める（左上から読めば順番どおり）
+// 低い画像が続いて列が遅れすぎたら、その列だけ「いちばん高い列 − 許容差」まで下げて始める
+const TILE_FOOT = 52; // 評価表示の高さ（目安）
+const MAX_DRIFT = 0.5; // 列どうしの高さの差を「列幅 × この値」までに抑える
 function masonry(items, W) {
   const gap = 14;
   const target = W < 640 ? 180 : 240;
   const n = Math.max(1, Math.floor((W + gap) / (target + gap)));
   const colW = (W - gap * (n - 1)) / n;
   const cols = Array.from({ length: n }, () => ({ el: h('div', { class: 'col' }), h: 0 }));
-  for (const it of items) {
-    const c = cols.reduce((a, b) => (b.h < a.h - 0.5 ? b : a));
-    c.el.append(it.el);
-    c.h += colW / it.ratio + 52 + gap;
+  for (let k = 0; k < items.length; k += n) {
+    const band = items.slice(k, k + n);
+    const floor = Math.max(...cols.map((c) => c.h)) - colW * MAX_DRIFT;
+    band.forEach((it, j) => {
+      const c = cols[j];
+      const lift = k > 0 && c.h < floor ? floor - c.h : 0;
+      it.el.style.marginTop = lift ? `${lift}px` : '';
+      c.h += lift;
+      c.el.append(it.el);
+      c.h += colW / it.ratio + TILE_FOOT + gap;
+    });
   }
   return h('div', { class: 'grid' }, cols.map((c) => c.el));
 }
