@@ -502,9 +502,10 @@ scaledLayout.addEventListener('change', fitCanvas);
 fitCanvas();
 
 // ───────── 写真の歪み ─────────
-// ふだんは光の残像のように歪み、カーソルを合わせる（キーボードで選ぶ）と2秒かけて歪みが消えて実体化する
+// ふだんは光の残像のように歪み、カーソルを合わせる（キーボードで選ぶ）と2秒かけて歪みが弱まって実体化する（揺れと少しの歪みは残す）
 const warpMap = document.querySelector('#photo-warp-map');
 const WARP_SCALE = 14;
+const WARP_HOVER = 3; // カーソルを合わせても少しだけ歪みを残す
 let warpValue = WARP_SCALE;
 let warpFrame = 0;
 function warpTo(goal) {
@@ -519,6 +520,6 @@ function warpTo(goal) {
   };
   warpFrame = requestAnimationFrame(step);
 }
-for (const [type, goal] of [['pointerenter', 0], ['pointerleave', WARP_SCALE], ['focus', 0], ['blur', WARP_SCALE]]) {
+for (const [type, goal] of [['pointerenter', WARP_HOVER], ['pointerleave', WARP_SCALE], ['focus', WARP_HOVER], ['blur', WARP_SCALE]]) {
   screenShotLink.addEventListener(type, () => warpTo(goal));
 }
