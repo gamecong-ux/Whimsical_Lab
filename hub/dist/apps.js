@@ -1,8 +1,9 @@
-// 作品を追加するときは、この一覧に name / nameEn / description / url / symbol / color を設定します。
+// 作品を追加するときは、この一覧に name / nameEn / description / url / symbol / color / image を設定します。
+// image はスクリーンに映す作品の画面画像（previews/ に置く）。空なら光だけのスクリーンになる。
 // 作品名は「漢字の名前（name）＋英語の名前（nameEn）」の形にそろえる。nameEn は見出しの横に小さく表示する。
 // URL が空の項目は準備中として表示します。画面画像はすべて仮のビジュアルです。
 const works = [
-  { name: '画像評価帳', nameEn: 'I like it', description: '気に入った画像を集めて、見比べて、残すための小さな道具。', url: 'https://i-like-it-dul.pages.dev/', symbol: '♡', color: '#f3b4c7' },
+  { name: '画像評価帳', nameEn: 'I like it', description: '気に入った画像を集めて、見比べて、残すための小さな道具。', url: 'https://i-like-it-dul.pages.dev/', symbol: '♡', color: '#f3b4c7', image: 'previews/i-like-it.png' },
   { name: 'アプリ 01', description: '新しい作品を準備中です。', url: '', symbol: '✳', color: '#a7c1ff' },
   { name: 'アプリ 02', description: '新しい作品を準備中です。', url: '', symbol: '◈', color: '#f1bb8f' },
   { name: 'アプリ 03', description: '新しい作品を準備中です。', url: '', symbol: '♫', color: '#c2b0fa' },
@@ -17,6 +18,7 @@ const title = document.querySelector('#work-title');
 const description = document.querySelector('#work-description');
 const kind = document.querySelector('#work-kind');
 const action = document.querySelector('#open-app');
+const screenShot = document.querySelector('#screen-shot');
 const counter = document.querySelector('#counter');
 const detailNumber = document.querySelector('#detail-number');
 const stage = document.querySelector('.stage');
@@ -83,6 +85,16 @@ function render() {
   kind.textContent = destination ? 'APP' : 'COMING SOON';
   counter.textContent = `APP ${String(selected + 1).padStart(2, '0')} / ${String(works.length).padStart(2, '0')}`;
   detailNumber.textContent = String(selected + 1).padStart(2, '0');
+  // スクリーンに映す作品の画面画像
+  if (work.image) {
+    screenShot.src = work.image;
+    screenShot.alt = `${work.name}の画面`;
+    screenShot.hidden = false;
+  } else {
+    screenShot.hidden = true;
+    screenShot.removeAttribute('src');
+    screenShot.alt = '';
+  }
   action.hidden = !destination;
   if (destination) action.href = destination;
   else action.removeAttribute('href');
