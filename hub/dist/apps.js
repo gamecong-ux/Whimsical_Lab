@@ -502,7 +502,7 @@ scaledLayout.addEventListener('change', fitCanvas);
 fitCanvas();
 
 // ───────── 写真の歪み ─────────
-// ふだんは光の残像のように歪み、カーソルを合わせる（キーボードで選ぶ）と0.5秒かけて歪みが消えて実体化する
+// ふだんは光の残像のように歪み、カーソルを合わせる（キーボードで選ぶ）と1秒かけて歪みが消えて実体化する
 const warpMap = document.querySelector('#photo-warp-map');
 const WARP_SCALE = 14;
 let warpValue = WARP_SCALE;
@@ -512,7 +512,7 @@ function warpTo(goal) {
   const from = warpValue;
   const start = performance.now();
   const step = now => {
-    const t = Math.min(1, (now - start) / 500);
+    const t = Math.min(1, (now - start) / 1000);
     warpValue = from + (goal - from) * (1 - Math.pow(1 - t, 3));
     warpMap.setAttribute('scale', warpValue.toFixed(2));
     if (t < 1) warpFrame = requestAnimationFrame(step);
