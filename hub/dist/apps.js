@@ -24,7 +24,9 @@ const dial = document.querySelector('.dial-area');
 const prism = document.querySelector('.prism');
 const lightSvg = document.querySelector('#light');
 const step = 360 / works.length;
-const DIAL_RADIUS = 0.47; // 円盤の直径に対する記号の配置半径
+// 円盤の直径に対する半径の割合。選択中のアイコンは円盤の縁（0.5）に乗り、ほかは縁の外（CSS の --r）に並ぶ
+const DIAL_RADIUS = 0.5;
+const dots = [];
 let selected = -1;
 
 const buttons = works.map((entry, index) => {
@@ -32,8 +34,17 @@ const buttons = works.map((entry, index) => {
   button.type = 'button';
   button.className = 'dial-item';
   const angle = index * 2 * Math.PI / works.length;
-  button.style.left = `${50 + DIAL_RADIUS * 100 * Math.cos(angle)}%`;
-  button.style.top = `${50 + DIAL_RADIUS * 100 * Math.sin(angle)}%`;
+  // 位置は CSS で「中心 + 向き(--cos, --sin) × 半径(--r)」として決める。選択中かどうかで --r が変わる
+  button.style.setProperty('--cos', Math.cos(angle).toFixed(5));
+  button.style.setProperty('--sin', Math.sin(angle).toFixed(5));
+  // 円盤の縁に置く小さな点（アイコンの位置の目印）
+  const dot = document.createElement('span');
+  dot.className = 'dial-dot';
+  dot.setAttribute('aria-hidden', 'true');
+  dot.style.setProperty('--cos', Math.cos(angle).toFixed(5));
+  dot.style.setProperty('--sin', Math.sin(angle).toFixed(5));
+  items.append(dot);
+  dots.push(dot);
   button.style.setProperty('--item-color', entry.color);
   button.setAttribute('aria-label', `${entry.name}${entry.url ? '' : '、準備中'}を選択`);
   button.title = entry.name;
@@ -78,6 +89,7 @@ function render() {
   buttons.forEach((button, index) => {
     button.classList.toggle('is-selected', index === selected);
     button.setAttribute('aria-pressed', String(index === selected));
+    dots[index].classList.toggle('is-selected', index === selected);
   });
   colorLight(work.color);
 }
