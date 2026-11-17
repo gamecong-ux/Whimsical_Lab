@@ -1,7 +1,8 @@
-// 作品を追加するときは、この一覧に name / description / url / symbol / color を設定します。
+// 作品を追加するときは、この一覧に name / nameEn / description / url / symbol / color を設定します。
+// 作品名は「漢字の名前（name）＋英語の名前（nameEn）」の形にそろえる。nameEn は見出しの横に小さく表示する。
 // URL が空の項目は準備中として表示します。画面画像はすべて仮のビジュアルです。
 const works = [
-  { name: '画像評価帳', description: '気に入った画像を集めて、見比べて、残すための小さな道具。', url: 'https://i-like-it-dul.pages.dev/', symbol: '♡', color: '#f3b4c7' },
+  { name: '画像評価帳', nameEn: 'I like it', description: '気に入った画像を集めて、見比べて、残すための小さな道具。', url: 'https://i-like-it-dul.pages.dev/', symbol: '♡', color: '#f3b4c7' },
   { name: 'アプリ 01', description: '新しい作品を準備中です。', url: '', symbol: '✳', color: '#a7c1ff' },
   { name: 'アプリ 02', description: '新しい作品を準備中です。', url: '', symbol: '◈', color: '#f1bb8f' },
   { name: 'アプリ 03', description: '新しい作品を準備中です。', url: '', symbol: '♫', color: '#c2b0fa' },
@@ -57,7 +58,16 @@ function render() {
   const destination = validUrl(work.url);
   stage.style.setProperty('--accent', work.color);
   preview.style.setProperty('--accent', work.color);
-  title.textContent = work.name;
+  const main = document.createElement('span');
+  main.textContent = work.name;
+  title.replaceChildren(main);
+  if (work.nameEn) {
+    const sub = document.createElement('span');
+    sub.className = 'work-title-en';
+    sub.lang = 'en';
+    sub.textContent = work.nameEn;
+    title.append(sub);
+  }
   description.textContent = work.description;
   kind.textContent = destination ? 'APP' : 'COMING SOON';
   counter.textContent = `APP ${String(selected + 1).padStart(2, '0')} / ${String(works.length).padStart(2, '0')}`;
